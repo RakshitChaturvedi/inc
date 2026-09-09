@@ -38,6 +38,10 @@ class GeospatialService {
     return false;
   }
 
+  isInDomain(lat: number, lon: number): boolean {
+    return lat >= 5.0 && lat <= 30.0 && lon >= 45.0 && lon <= 105.0;
+  }
+
   getNearestModelCell(lat: number, lon: number): Coordinate {
     const nearestLat = Math.round(lat / 0.25) * 0.25;
     const nearestLon = Math.round(lon / 0.25) * 0.25;

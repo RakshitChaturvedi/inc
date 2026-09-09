@@ -78,6 +78,9 @@ export function App() {
       if (geoService.isLand(selected.lat, selected.lon)) {
         setProfile(undefined);
         setPanelData(undefined);
+      } else if (!geoService.isInDomain(selected.lat, selected.lon)) {
+        setProfile(null);
+        setPanelData(null);
       } else {
         const handleSuccess = (setData: (v: any) => void) => (data: any) => {
           if (!controller.signal.aborted) setData(data);
@@ -277,12 +280,16 @@ export function App() {
             {selected
               ? geoService.isLand(selected.lat, selected.lon)
                 ? `⛰️ LAND · ${formatLocation(selected)}`
+                : !geoService.isInDomain(selected.lat, selected.lon)
+                ? `🌐 OUT OF DOMAIN · ${formatLocation(selected)}`
                 : `🌊 OCEAN · ${formatLocation(selected)}`
               : "No location selected"}
           </div>
           <div className="region">
             {selected && geoService.isLand(selected.lat, selected.lon)
               ? "Land Mass (Subsurface Profile N/A)"
+              : selected && !geoService.isInDomain(selected.lat, selected.lon)
+              ? "Outside Model Domain (5°N–30°N, 45°E–105°E)"
               : `${status?.analysisWeek ?? "—"} · nearest ARGO ${profile?.nearestArgoKm ? `${profile.nearestArgoKm.toFixed(0)} km` : "—"}`}
           </div>
         </div>
@@ -293,6 +300,14 @@ export function App() {
               <b style={{ fontSize: "14px", color: "#ff7a52", letterSpacing: "0.05em" }}>LAND LOCATION SELECTED</b>
               <p style={{ fontSize: "12px", marginTop: "10px", color: "#a0b0b8", lineHeight: "1.5" }}>
                 Coordinate <strong>{formatLocation(selected)}</strong> is on land mass. Subsurface ocean profiles (0–1000m) are only computed for water cells.
+              </p>
+            </div>
+          ) : selected && !geoService.isInDomain(selected.lat, selected.lon) ? (
+            <div className="land-warning-card" style={{ padding: "36px 20px", textAlign: "center", background: "rgba(255, 180, 0, 0.06)", border: "1px dashed rgba(255, 180, 0, 0.4)", borderRadius: "10px", margin: "10px 0" }}>
+              <div style={{ fontSize: "28px", marginBottom: "8px" }}>🌐</div>
+              <b style={{ fontSize: "14px", color: "#ffb400", letterSpacing: "0.05em" }}>OUTSIDE MODEL DOMAIN</b>
+              <p style={{ fontSize: "12px", marginTop: "10px", color: "#a0b0b8", lineHeight: "1.5" }}>
+                Coordinate <strong>{formatLocation(selected)}</strong> is outside the OceanEmbed domain (5.0°N–30.0°N, 45.0°E–105.0°E). Reconstructed subsurface fields and metrics are only computed within this coverage box.
               </p>
             </div>
           ) : (
