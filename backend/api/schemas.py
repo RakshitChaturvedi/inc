@@ -21,6 +21,13 @@ class DatasetStatus(BaseModel):
     time_end: str | None = None
 
 
+class ArgoFloatResponse(BaseModel):
+    lat: float
+    lon: float
+    id: str
+    lastProfile: str
+
+
 # ============================================================================
 # Health / status
 # ============================================================================

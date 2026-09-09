@@ -5,3 +5,11 @@ dist
 *.tsbuildinfo
 vite.config.js
 vite.config.d.ts
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
