@@ -11,6 +11,10 @@ function getWeekNumber(d: Date) {
   return `${d.getUTCFullYear()}-W${weekNo.toString().padStart(2, '0')}`;
 }
 
+export function isOutOfDomain(location: Coordinate): boolean {
+  return location.lat < 5.0 || location.lat > 30.0 || location.lon < 45.0 || location.lon > 105.0;
+}
+
 export const oceanApi: OceanEmbedApi = {
   getStatus: async (date) => {
     try {
@@ -42,7 +46,7 @@ export const oceanApi: OceanEmbedApi = {
       if (Array.isArray(data.points) && data.points.length > 0) {
         return data.points as FieldPoint[];
       }
-      return mockOceanApi.getField(date, field, depth);
+      return [];
     } catch (err) {
       console.warn("Backend offline or error in getField, falling back to mock:", err);
       return mockOceanApi.getField(date, field, depth);
@@ -50,9 +54,19 @@ export const oceanApi: OceanEmbedApi = {
   },
 
   getProfile: async (date, location) => {
+    if (isOutOfDomain(location)) {
+      return null;
+    }
+
     try {
       const response = await fetch(`${BASE_URL}/profile?date=${date}&lat=${location.lat}&lon=${location.lon}`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to fetch profile`);
+      if (!response.ok) {
+        // If coordinate is out of bounds or data is unavailable, do NOT mock data
+        if (response.status === 400 || response.status === 404 || response.status === 422) {
+          return null;
+        }
+        throw new Error(`HTTP ${response.status}: Failed to fetch profile`);
+      }
       const raw = await response.json();
 
       const depths = (raw.depths || []).map((d: any, i: number) => {
@@ -94,15 +108,20 @@ export const oceanApi: OceanEmbedApi = {
         gateStatus: "published",
       } as OceanProfile;
     } catch (err) {
-      console.warn("Backend offline or error in getProfile, falling back to mock:", err);
-      return mockOceanApi.getProfile(date, location);
+      console.warn("Backend offline or error in getProfile:", err);
+      return null;
     }
   },
 
   getTchp: async (date, location) => {
+    if (isOutOfDomain(location)) return null;
+
     try {
       const response = await fetch(`${BASE_URL}/tchp?date=${date}&lat=${location.lat}&lon=${location.lon}`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to fetch tchp`);
+      if (!response.ok) {
+        if (response.status === 400 || response.status === 404 || response.status === 422) return null;
+        throw new Error(`HTTP ${response.status}: Failed to fetch tchp`);
+      }
       const raw = await response.json();
       return {
         value: raw.value ?? 0,
@@ -113,15 +132,20 @@ export const oceanApi: OceanEmbedApi = {
         location: raw.location ?? location,
       };
     } catch (err) {
-      console.warn("Backend offline or error in getTchp, falling back to mock:", err);
-      return mockOceanApi.getTchp(date, location);
+      console.warn("Backend offline or error in getTchp:", err);
+      return null;
     }
   },
 
   getD26: async (date, location) => {
+    if (isOutOfDomain(location)) return null;
+
     try {
       const response = await fetch(`${BASE_URL}/d26?date=${date}&lat=${location.lat}&lon=${location.lon}`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to fetch d26`);
+      if (!response.ok) {
+        if (response.status === 400 || response.status === 404 || response.status === 422) return null;
+        throw new Error(`HTTP ${response.status}: Failed to fetch d26`);
+      }
       const raw = await response.json();
       return {
         value: raw.value ?? 0,
@@ -131,15 +155,20 @@ export const oceanApi: OceanEmbedApi = {
         location: raw.location ?? location,
       };
     } catch (err) {
-      console.warn("Backend offline or error in getD26, falling back to mock:", err);
-      return mockOceanApi.getD26(date, location);
+      console.warn("Backend offline or error in getD26:", err);
+      return null;
     }
   },
 
   getMld: async (date, location) => {
+    if (isOutOfDomain(location)) return null;
+
     try {
       const response = await fetch(`${BASE_URL}/mld?date=${date}&lat=${location.lat}&lon=${location.lon}`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to fetch mld`);
+      if (!response.ok) {
+        if (response.status === 400 || response.status === 404 || response.status === 422) return null;
+        throw new Error(`HTTP ${response.status}: Failed to fetch mld`);
+      }
       const raw = await response.json();
       return {
         value: raw.value ?? 0,
@@ -148,16 +177,21 @@ export const oceanApi: OceanEmbedApi = {
         location: raw.location ?? location,
       };
     } catch (err) {
-      console.warn("Backend offline or error in getMld, falling back to mock:", err);
-      return mockOceanApi.getMld(date, location);
+      console.warn("Backend offline or error in getMld:", err);
+      return null;
     }
   },
 
   getUncertainty: async (date, location, depth) => {
+    if (isOutOfDomain(location)) return null;
+
     try {
       const d = depth ?? 0;
       const response = await fetch(`${BASE_URL}/uncertainty?date=${date}&lat=${location.lat}&lon=${location.lon}&depth=${d}`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to fetch uncertainty`);
+      if (!response.ok) {
+        if (response.status === 400 || response.status === 404 || response.status === 422) return null;
+        throw new Error(`HTTP ${response.status}: Failed to fetch uncertainty`);
+      }
       const raw = await response.json();
       return {
         value: raw.temperature ?? 0,
@@ -166,8 +200,8 @@ export const oceanApi: OceanEmbedApi = {
         depth: raw.depth ?? d,
       };
     } catch (err) {
-      console.warn("Backend offline or error in getUncertainty, falling back to mock:", err);
-      return mockOceanApi.getUncertainty(date, location, depth);
+      console.warn("Backend offline or error in getUncertainty:", err);
+      return null;
     }
   },
 
