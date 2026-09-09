@@ -45,7 +45,7 @@ function hexToRgb(hex: string): [number, number, number, number] {
 
 const colorStops: Record<FieldId, [number, string][]> = {
   temperature: [[3, "#153c85"], [17, "#18a7c8"], [25, "#64dfc9"], [31, "#ffca65"]],
-  salinity: [[31, "#4b2b73"], [34, "#4ed3d0"], [37, "#d9e8e8"]],
+  salinity: [[31, "#d9e8e8"], [34, "#4ed3d0"], [37, "#4b2b73"]],
   uncertainty: [[0.1, "#133c5b"], [0.6, "#55d6c2"], [1.2, "#ff785a"]],
   tchp: [[10, "#113b62"], [70, "#31c8c9"], [130, "#ffe17b"]],
   d26: [[10, "#1d4b77"], [85, "#43cfbe"], [160, "#f4da7a"]],

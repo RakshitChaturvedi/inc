@@ -188,7 +188,7 @@ html, body {
 .legend .bar { height: 7px; border-radius: 3px; margin-bottom: 4px; }
 .legend .scale { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 9.5px; color: var(--text-faint); }
 .legend .bar.temperature { background: linear-gradient(90deg, #0b2038,#123f57,#1a7267,#4aa564,#e3b64c,#ff9d5c,#ff6b4a); }
-.legend .bar.salinity { background: linear-gradient(90deg, #081a33,#153b66,#2c6ea3,#5fa3c9,#a9d3e0,#eef6f5); }
+.legend .bar.salinity { background: linear-gradient(90deg, #eef6f5,#a9d3e0,#5fa3c9,#2c6ea3,#153b66,#081a33); }
 .legend .bar.tchp { background: linear-gradient(90deg, #081226,#123a55,#1c6b5e,#e3b64c,#ff8a3d,#ff5a5a,#c81e3a); }
 .legend .bar.uncertainty { background: linear-gradient(90deg, #10171f,#26343d,#48626d,#84989f,#c9d5d8); }
 .legend .bar.mld { background: linear-gradient(90deg, #1d4b77, #43cfbe, #f4da7a); }
