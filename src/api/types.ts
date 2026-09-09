@@ -52,4 +52,5 @@ export interface OceanEmbedApi {
   getD26(date: string, location: Coordinate): Promise<{ value: number; tchp: number; confidence: number; week: string; location: Coordinate } | null>;
   getMld(date: string, location: Coordinate): Promise<{ value: number; confidence: number; week: string; location: Coordinate } | null>;
   getUncertainty(date: string, location: Coordinate, depth?: number): Promise<{ value: number; week: string; location: Coordinate; depth?: number } | null>;
+  getEvaluationReport?(): Promise<any>;
 }

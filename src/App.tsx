@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { mockOceanApi } from "./api/mockOceanApi";
+import { oceanApi } from "./api/apiClient";
 import { DEPTHS, type ArgoFloat, type Coordinate, type FieldId, type FieldPoint, type OceanProfile, type RunStatus } from "./api/types";
 import { OceanMap } from "./map/OceanMap";
 import { ProfilePanel } from "./components/profile/ProfilePanel";
@@ -54,15 +54,15 @@ export function App() {
   useEffect(() => {
     setApiError(null);
     const controller = new AbortController();
-    mockOceanApi.getStatus(selectedAnalysisDate).then(data => { if (!controller.signal.aborted) setStatus(data); }).catch(e => { if (!controller.signal.aborted) console.error(e); });
-    mockOceanApi.getArgoFloats(selectedAnalysisDate).then(data => { if (!controller.signal.aborted) setFloats(data); }).catch(e => { if (!controller.signal.aborted) console.error(e); });
+    oceanApi.getStatus(selectedAnalysisDate).then(data => { if (!controller.signal.aborted) setStatus(data); }).catch(e => { if (!controller.signal.aborted) console.error(e); });
+    oceanApi.getArgoFloats(selectedAnalysisDate).then(data => { if (!controller.signal.aborted) setFloats(data); }).catch(e => { if (!controller.signal.aborted) console.error(e); });
     geoService.loadMask();
     return () => controller.abort();
   }, [selectedAnalysisDate]);
   
   useEffect(() => { 
     const controller = new AbortController();
-    void mockOceanApi.getField(selectedAnalysisDate, field, selectedField.depth ? depth : 0).then(data => {
+    void oceanApi.getField(selectedAnalysisDate, field, selectedField.depth ? depth : 0).then(data => {
       if (!controller.signal.aborted) setPoints(data);
     }).catch(err => {
       if (!controller.signal.aborted) console.error("Failed to load map field", err);
@@ -92,22 +92,22 @@ export function App() {
 
         if (field === 'temperature' || field === 'salinity') {
           setPanelData(undefined);
-          void mockOceanApi.getProfile(selectedAnalysisDate, selected)
+          void oceanApi.getProfile(selectedAnalysisDate, selected)
             .then(handleSuccess(setProfile)).catch(handleError);
         } else if (field === 'tchp') {
           setPanelData(undefined);
           setProfile(undefined);
-          void mockOceanApi.getTchp(selectedAnalysisDate, selected)
+          void oceanApi.getTchp(selectedAnalysisDate, selected)
             .then(handleSuccess(setPanelData)).catch(handleError);
         } else if (field === 'mld') {
           setPanelData(undefined);
           setProfile(undefined);
-          void mockOceanApi.getMld(selectedAnalysisDate, selected)
+          void oceanApi.getMld(selectedAnalysisDate, selected)
             .then(handleSuccess(setPanelData)).catch(handleError);
         } else if (field === 'uncertainty') {
           setPanelData(undefined);
           setProfile(undefined);
-          void mockOceanApi.getUncertainty(selectedAnalysisDate, selected, depth)
+          void oceanApi.getUncertainty(selectedAnalysisDate, selected, depth)
             .then(handleSuccess(setPanelData)).catch(handleError);
         }
       }

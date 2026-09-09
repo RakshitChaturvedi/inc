@@ -92,10 +92,14 @@ def get_uncertainty(
     # whether xarray stores timestamps at midnight or as datetime64.
     available_dates = times.dt.date.values
 
+    selected_time = requested_date.isoformat()
     if requested_date not in available_dates:
-        raise DataNotAvailableError(
-            f"No uncertainty data available for {requested_date.isoformat()}"
-        )
+        if len(available_dates) > 0:
+            selected_time = str(available_dates[0])
+        else:
+            raise DataNotAvailableError(
+                f"No uncertainty data available for {requested_date.isoformat()}"
+            )
 
     # ---------------------------------------------------------------
     # 4. Check required uncertainty variables
@@ -113,10 +117,11 @@ def get_uncertainty(
     # 5. Select the exact model point
     # ---------------------------------------------------------------
     point = ds.sel(
-        time=requested_date.isoformat(),
+        time=selected_time,
         depth=model_depth,
         latitude=cell.lat,
         longitude=cell.lon,
+        method="nearest",
     )
 
     temperature_uncertainty = _safe_float(

@@ -12,28 +12,35 @@ import xarray as xr
 from .errors import DatasetUnavailableError
 
 
+import json
+import os
+
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-
-DATA_DIR = PROJECT_ROOT / "data"
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+DATA_DIR = Path(os.getenv("OCEAN_DATA_DIR", BACKEND_ROOT / "data"))
 
 BUSINESS_DIR = DATA_DIR / "business"
 EVALUATION_DIR = DATA_DIR / "evaluation"
 PHYSICS_DIR = DATA_DIR / "physics"
 
-BACKEND_ROOT = Path(__file__).resolve().parents[1]
-
-DASHBOARD_DATASET_PATH = DASHBOARD_PATH = (
-    BACKEND_ROOT
-    / "data"
-    / "business"
-    / "dashboard_ready.nc"
+DASHBOARD_DATASET_PATH = DASHBOARD_PATH = Path(
+    os.getenv(
+        "DASHBOARD_DATASET_PATH",
+        os.getenv("OCEAN_DASHBOARD_PATH", BUSINESS_DIR / "dashboard_ready.nc"),
+    )
 )
-PHYSICS_ADJUSTED_PATH = PHYSICS_DIR / "physics_adjusted.nc"
-EVALUATION_REPORT_PATH = EVALUATION_DIR / "evaluation_report.json"
+PHYSICS_ADJUSTED_PATH = Path(
+    os.getenv("PHYSICS_ADJUSTED_PATH", PHYSICS_DIR / "physics_adjusted.nc")
+)
+EVALUATION_REPORT_PATH = Path(
+    os.getenv(
+        "EVALUATION_REPORT_PATH",
+        os.getenv("OCEAN_EVALUATION_REPORT_PATH", EVALUATION_DIR / "evaluation_report.json"),
+    )
+)
 
 
 # ---------------------------------------------------------------------------
@@ -158,6 +165,20 @@ class OceanDataset:
     @property
     def physics_available(self) -> bool:
         return self.physics_path.exists()
+
+    @property
+    def evaluation_report_available(self) -> bool:
+        return self.evaluation_report_path.exists()
+
+    @property
+    def evaluation_report(self) -> dict | None:
+        if not self.evaluation_report_available:
+            return None
+        try:
+            with open(self.evaluation_report_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return None
 
     # ------------------------------------------------------------------
     # Coordinates

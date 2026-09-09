@@ -94,10 +94,14 @@ def get_tchp(
 
     available_dates = ds["time"].dt.date.values
 
+    selected_time = date.isoformat()
     if date not in available_dates:
-        raise DataNotAvailableError(
-            f"No TCHP data available for {date.isoformat()}"
-        )
+        if len(available_dates) > 0:
+            selected_time = str(available_dates[0])
+        else:
+            raise DataNotAvailableError(
+                f"No TCHP data available for {date.isoformat()}"
+            )
 
     # ---------------------------------------------------------------
     # 3. Resolve click to nearest model grid cell
@@ -110,9 +114,10 @@ def get_tchp(
     # ---------------------------------------------------------------
 
     point = ds.sel(
-        time=date.isoformat(),
+        time=selected_time,
         latitude=cell.lat,
         longitude=cell.lon,
+        method="nearest",
     )
 
     # ---------------------------------------------------------------

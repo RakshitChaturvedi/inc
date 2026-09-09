@@ -121,9 +121,13 @@ def get_profile(
     target_time = _find_time_for_date(ds["time"], date)
 
     if target_time is None:
-        raise DataNotAvailableError(
-            f"No data available for {date.isoformat()}"
-        )
+        times = ds["time"].values
+        if len(times) > 0:
+            target_time = times[0]
+        else:
+            raise DataNotAvailableError(
+                f"No data available for {date.isoformat()}"
+            )
 
     data_date = _timestamp_to_date(target_time).isoformat()
 

@@ -15,9 +15,12 @@ router = APIRouter(
 )
 
 
+import numpy as np
+
 FIELD_VARIABLES = {
     "temperature": "temperature_mean",
     "salinity": "salinity_mean",
+    "uncertainty": "temperature_std",
     "tchp": "tchp",
     "d26": "d26",
     "mld": "mld",
@@ -46,10 +49,10 @@ def get_field(
     dataset_variable = FIELD_VARIABLES[variable]
 
     # ---------------------------------------------------------------
-    # Exact date availability
+    # Date availability check
     # ---------------------------------------------------------------
 
-    if not dataset.has_date(date):
+    if len(dataset.available_times()) == 0:
         return FieldResponse(
             variable=variable,
             date=date.isoformat(),
@@ -65,11 +68,10 @@ def get_field(
     if dataset_variable in {
         "temperature_mean",
         "salinity_mean",
-    } and depth is None:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Depth is required for '{variable}'.",
-        )
+        "temperature_std",
+    }:
+        if depth is None:
+            depth = 0.0
 
     if dataset_variable in {
         "tchp",
@@ -96,30 +98,23 @@ def get_field(
         ) from exc
 
     # ---------------------------------------------------------------
-    # Convert xarray → API response
+    # Convert xarray → API response (fast vectorized access)
     # ---------------------------------------------------------------
 
     points: list[FieldPoint] = []
+    lats = field.latitude.values
+    lons = field.longitude.values
+    vals = field.values
 
-    for lat in field.latitude.values:
-        for lon in field.longitude.values:
-
-            value = field.sel(
-                latitude=lat,
-                longitude=lon,
-            ).item()
-
-            if value is None:
-                numeric_value = None
-            else:
-                try:
-                    numeric_value = float(value)
-                except (TypeError, ValueError):
-                    numeric_value = None
-
+    for i, lat in enumerate(lats):
+        lat_f = float(lat)
+        row = vals[i]
+        for j, lon in enumerate(lons):
+            v = row[j]
+            numeric_value = float(v) if np.isfinite(v) else None
             points.append(
                 FieldPoint(
-                    lat=float(lat),
+                    lat=lat_f,
                     lon=float(lon),
                     value=numeric_value,
                     uncertainty=None,
@@ -132,4 +127,4 @@ def get_field(
         depth=depth,
         stride=stride,
         points=points,
-    )
+    )

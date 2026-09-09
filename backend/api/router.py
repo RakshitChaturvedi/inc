@@ -12,6 +12,8 @@ from .routes.mld import router as mld_router
 from .routes.thermocline import router as thermocline_router
 from .routes.uncertainty import router as uncertainty_router
 from .routes.sampling import router as sampling_router
+from .routes.argo import router as argo_router
+from .routes.evaluation import router as evaluation_router
 
 
 router = APIRouter(
@@ -21,6 +23,8 @@ router = APIRouter(
 
 router.include_router(health_router)
 router.include_router(metadata_router)
+router.include_router(evaluation_router)
+router.include_router(argo_router)
 router.include_router(field_router)
 router.include_router(profile_router)
 router.include_router(tchp_router)
