@@ -1,0 +1,73 @@
+dates:
+  start: "2025-01-01"
+  end: "2026-08-01"
+
+domain:
+  lat_min: 5.0
+  lat_max: 30.0
+  lon_min: 45.0
+  lon_max: 105.0
+
+resolution: 0.25
+
+output_root: "data/raw"
+
+
+# ============================================================
+# COPERNICUS MARINE
+# ============================================================
+
+copernicus:
+
+  # ARMOR3D is NOT downloaded for the 2025-2026 inference
+  # period. It is a validation/benchmark product, not a model
+  # input. If its temporal coverage is unavailable, benchmark
+  # will simply be unavailable for those dates.
+  armor3d:
+    enabled: false
+    dataset_id: "cmems_obs-mob_glo_phy_my_0.125deg_P1D-m"
+    variables:
+      - "to"
+      - "so"
+    output_dir: "data/raw/armor3d"
+
+  # SSH/SLA is the one Copernicus input we currently use.
+  ssh:
+    enabled: true
+    product_id: "SEALEVEL_GLO_PHY_L4_NRT_008_046"
+    preferred_variables:
+      - "sla"
+      - "zos"
+      - "sea_level_anomaly"
+    output_dir: "data/raw/ssh"
+
+
+# ============================================================
+# NASA PO.DAAC
+# ============================================================
+
+podaac:
+
+  # Sea surface temperature
+  sst:
+    enabled: true
+    collection: "AVHRR_OI-NCEI-L4-GLOB-v2.1"
+    output_dir: "data/raw/sst"
+
+  # Sea surface salinity
+  sss:
+    enabled: true
+    collection: "OISSS_L4_multimission_7day_v2"
+    output_dir: "data/raw/sss"
+
+  # Surface winds
+  wind:
+    enabled: true
+    collection: "CCMP_WINDS_10M6HR_L4_V3.1"
+    output_dir: "data/raw/wind"
+
+  # Surface currents
+  currents:
+    enabled: true
+    collection: "OSCAR_L4_OC_FINAL_V2.0"
+    output_dir: "data/raw/currents"
