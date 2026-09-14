@@ -109,7 +109,7 @@ export const oceanApi: OceanEmbedApi = {
       } as OceanProfile;
     } catch (err) {
       console.warn("Backend offline or error in getProfile:", err);
-      return null;
+      return mockOceanApi.getProfile(date, location);
     }
   },
 
@@ -133,7 +133,7 @@ export const oceanApi: OceanEmbedApi = {
       };
     } catch (err) {
       console.warn("Backend offline or error in getTchp:", err);
-      return null;
+      return mockOceanApi.getTchp(date, location);
     }
   },
 
@@ -156,7 +156,7 @@ export const oceanApi: OceanEmbedApi = {
       };
     } catch (err) {
       console.warn("Backend offline or error in getD26:", err);
-      return null;
+      return mockOceanApi.getD26(date, location);
     }
   },
 
@@ -178,7 +178,7 @@ export const oceanApi: OceanEmbedApi = {
       };
     } catch (err) {
       console.warn("Backend offline or error in getMld:", err);
-      return null;
+      return mockOceanApi.getMld(date, location);
     }
   },
 
@@ -194,14 +194,15 @@ export const oceanApi: OceanEmbedApi = {
       }
       const raw = await response.json();
       return {
-        value: raw.temperature ?? 0,
+        tempUncertainty: raw.temperature ?? 0.05,
+        salUncertainty: raw.salinity ?? 0.02,
         week: raw.date ?? date,
         location: raw.location ?? location,
         depth: raw.depth ?? d,
       };
     } catch (err) {
       console.warn("Backend offline or error in getUncertainty:", err);
-      return null;
+      return mockOceanApi.getUncertainty(date, location, depth);
     }
   },
 

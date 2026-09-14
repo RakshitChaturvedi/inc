@@ -428,6 +428,14 @@ html, body {
   transition: opacity 0.2s ease-out;
 }
 
+.ap-chart-field {
+  font-size: 14px;
+  font-weight: 600;
+  color: #E8F1F5;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
 .rail.open .layer-btn .lbl {
   opacity: 1;
 }
@@ -483,8 +491,22 @@ html, body {
   line-height: 1.4;
 }
 
+.ap-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #E8F1F5;
+  letter-spacing: 0.03em;
+}
+
 .rail:not(.open) .toggle-row:hover::after {
   content: attr(data-name);
+}
+
+.ap-legend-circle {
+  width: 8px;
+  height: 8px;
+  background: #42E8D4;
+  border-radius: 50%;
 }
 
 .rail-divider {
@@ -624,7 +646,7 @@ html, body {
 }
 
 .rail.open ~ .legend {
-  left: 290px;
+  left: 350px;
 }
 .legend .ttl { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 7px; text-transform: uppercase; }
 .legend .bar { height: 7px; border-radius: 3px; margin-bottom: 4px; }
@@ -669,32 +691,175 @@ html, body {
 .depth-readout .val { font-size: 16px; font-weight: 700; color: var(--accent); line-height: 1; }
 .depth-readout .unit { font-size: 8px; color: #7c94a0; letter-spacing: 0.1em; font-weight: 600; margin-top: 2px; }
 
-.profile-panel {
-  position: absolute; top: 66px; right: 126px; bottom: 52px; width: 340px; z-index: 26;
-  background: var(--panel-strong); border: 1px solid var(--border); border-radius: 9px;
-  transform: translateX(20px); opacity: 0; pointer-events: none; transition: all .22s cubic-bezier(.4,0,.2,1);
-  display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+/* Analysis Popup */
+.analysis-popup {
+  width: 320px;
+  background: #0B151D;
+  border: 1px solid #243642;
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+  font-family: var(--sans);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
-.profile-panel.show { transform: translateX(0); opacity: 1; pointer-events: all; }
-.pp-head { padding: 14px 16px 9px; border-bottom: 1px solid var(--border); position: relative; }
-.pp-head .coord { font-family: var(--mono); font-size: 14px; color: var(--text); font-weight: 600; }
-.pp-head .region { font-size: 10.5px; color: var(--text-muted); margin-top: 2px; }
-.pp-close {
-  position: absolute; top: 12px; right: 12px; width: 20px; height: 20px; border-radius: 5px;
-  background: rgba(255,255,255,0.04); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-muted); font-size: 13px;
+
+.ap-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #101F28;
+  border-bottom: 1px solid #243642;
+  cursor: grab;
+  user-select: none;
 }
-.pp-close:hover { background: rgba(255,255,255,0.08); color: var(--text); }
-.pp-body { flex: 1; padding: 12px 16px; overflow-y: auto; }
-.pp-chart { width: 100%; height: 200px; display: block; overflow: visible; }
-.pp-stats { display: grid; gap: 8px; margin-top: 12px; }
-.pp-stat { background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; }
-.pp-stat .k { font-family: var(--mono); font-size: 8.5px; color: var(--text-faint); letter-spacing: 0.05em; text-transform: uppercase; }
-.pp-stat .v { font-family: var(--mono); font-size: 14px; color: var(--accent); font-weight: 600; margin-top: 2px; }
-.pp-stat .v small { font-size: 9px; color: var(--text-faint); }
-.pp-stat .v.ok { color: var(--green); font-size: 11px; text-transform: uppercase; }
-.pp-legend { display: flex; gap: 14px; margin-top: 10px; font-size: 10.5px; color: var(--text-muted); }
-.pp-legend span { display: flex; align-items: center; gap: 6px; }
-.pp-legend i { width: 13px; height: 2px; display: inline-block; }
+
+.ap-header:active {
+  cursor: grabbing;
+}
+
+.ap-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #E8F1F5;
+  letter-spacing: 0.03em;
+}
+
+.ap-close {
+  color: #8FA3AE;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease;
+}
+.ap-close:hover {
+  color: #E8F1F5;
+}
+
+.ap-meta {
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px 0;
+  font-size: 12px;
+  color: #8FA3AE;
+}
+
+.ap-body {
+  padding: 16px;
+}
+
+.ap-chart-header {
+  margin-bottom: 16px;
+}
+
+.ap-chart-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8FA3AE;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.ap-chart-field {
+  font-size: 14px;
+  font-weight: 600;
+  color: #E8F1F5;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.ap-chart-unit {
+  font-size: 12px;
+  color: #8FA3AE;
+  margin-top: 2px;
+}
+
+.ap-chart-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #8FA3AE;
+  margin-top: 16px;
+  justify-content: flex-end;
+}
+.ap-legend-circle {
+  width: 8px;
+  height: 8px;
+  background: #42E8D4;
+  border-radius: 50%;
+}
+
+.ap-scalar-card {
+  background: rgba(66, 232, 212, 0.05);
+  border: 1px solid rgba(66, 232, 212, 0.1);
+  border-radius: 6px;
+  padding: 20px;
+  margin-top: 10px;
+}
+.ap-scalar-value {
+  font-size: 28px;
+  font-weight: 600;
+  color: #E8F1F5;
+  margin-top: 12px;
+}
+.ap-scalar-value span {
+  font-size: 14px;
+  color: #8FA3AE;
+}
+
+.ap-loading, .ap-error {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #8FA3AE;
+  justify-content: center;
+  text-align: center;
+}
+.ap-error {
+  color: #E8F1F5;
+  flex-direction: column;
+  padding: 40px 24px;
+}
+.ap-error span {
+  color: #718691;
+  font-size: 13px;
+  font-weight: 400;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+.ap-domain-box {
+  margin-top: 24px;
+  padding: 10px 14px;
+  background: #101F28;
+  border: 1px dashed #243642;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: var(--mono);
+  color: #42E8D4;
+}
+
+.ap-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(66, 232, 212, 0.2);
+  border-top-color: #42E8D4;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.chart-hover-group:hover .tooltip-overlay {
+  opacity: 1 !important;
+}
 
 /* Bottom Model Bar */
 .bottom-model-bar {

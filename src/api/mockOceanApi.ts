@@ -115,7 +115,8 @@ export const mockOceanApi: OceanEmbedApi = {
   },
   getUncertainty: (date, location, depth) => {
     return wait({
-      value: fieldValue("uncertainty", location.lat, location.lon, depth ?? 0),
+      tempUncertainty: fieldValue("uncertainty", location.lat, location.lon, depth ?? 0),
+      salUncertainty: fieldValue("uncertainty", location.lat, location.lon, (depth ?? 0) + 100) * 0.8,
       week: "2026-W35", location, depth
     });
   }

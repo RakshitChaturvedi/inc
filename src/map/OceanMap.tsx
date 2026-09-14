@@ -2,14 +2,34 @@ import { useEffect, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
 import type { MapMouseEvent } from "maplibre-gl";
 import { basemaps, type BasemapId } from "./basemaps";
-import type { ArgoFloat, Coordinate, FieldId, FieldPoint } from "../api/types";
+import type { ArgoFloat, Coordinate, FieldId, FieldPoint, OceanProfile } from "../api/types";
+import { AnalysisPopup } from "../components/popup/AnalysisPopup";
 
 import { MapboxOverlay } from '@deck.gl/mapbox';
 import { BitmapLayer, GeoJsonLayer, ScatterplotLayer, LineLayer } from '@deck.gl/layers';
 import { MaskExtension } from '@deck.gl/extensions';
 import { geoService } from "../services/GeospatialService";
 
-type Props = { basemap: BasemapId; field: FieldId; points: FieldPoint[]; floats: ArgoFloat[]; showGrid: boolean; showArgo: boolean; showSampling: boolean; showSaliency: boolean; selected?: Coordinate; onSelect: (point: Coordinate) => void };
+type Props = { 
+  basemap: BasemapId; 
+  field: FieldId; 
+  points: FieldPoint[]; 
+  floats: ArgoFloat[]; 
+  showGrid: boolean; 
+  showArgo: boolean; 
+  showSampling: boolean; 
+  showSaliency: boolean; 
+  selected?: Coordinate; 
+  onSelect: (point: Coordinate) => void;
+  date: string;
+  fieldLabel: string;
+  fieldUnit: string;
+  isDepthField: boolean;
+  profile: OceanProfile | null | undefined;
+  panelData: any;
+  apiError: string | null;
+  onClearSelection: () => void;
+};
 
 function interpolateColor(val: number, stops: [number, string][]): [number, number, number, number] {
   if (val <= stops[0][0]) return hexToRgb(stops[0][1]);
@@ -98,9 +118,13 @@ function fitDomain(map: maplibregl.Map) {
   });
 }
 
-export function OceanMap({ basemap, field, points, floats, showGrid, showArgo, showSampling, showSaliency, selected, onSelect }: Props) {
+export function OceanMap({ 
+  basemap, field, points, floats, showGrid, showArgo, showSampling, showSaliency, selected, onSelect,
+  date, fieldLabel, fieldUnit, isDepthField, profile, panelData, apiError, onClearSelection
+}: Props) {
   const node = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const [mapInstance, setMapInstance] = useState<maplibregl.Map | null>(null);
   const overlayRef = useRef<MapboxOverlay | null>(null);
   const activeBasemap = useRef<BasemapId>(basemap);
 
@@ -121,6 +145,7 @@ export function OceanMap({ basemap, field, points, floats, showGrid, showArgo, s
     overlayRef.current = overlay;
 
     mapRef.current = map;
+    setMapInstance(map);
 
     const handleResize = () => {
       if (mapRef.current) {
@@ -249,5 +274,24 @@ export function OceanMap({ basemap, field, points, floats, showGrid, showArgo, s
     map.setStyle(basemaps[basemap]);
   }, [basemap]);
 
-  return <div ref={node} className="map-canvas" aria-label="North Indian Ocean reconstruction map" />;
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <div ref={node} className="map-canvas" aria-label="North Indian Ocean reconstruction map" style={{ width: '100%', height: '100%' }} />
+      {selected && mapInstance && (
+        <AnalysisPopup 
+          map={mapInstance} 
+          selected={selected}
+          date={date}
+          fieldId={field}
+          fieldLabel={fieldLabel}
+          fieldUnit={fieldUnit}
+          isDepthField={isDepthField}
+          profile={profile}
+          panelData={panelData}
+          apiError={apiError}
+          onClose={onClearSelection}
+        />
+      )}
+    </div>
+  );
 }

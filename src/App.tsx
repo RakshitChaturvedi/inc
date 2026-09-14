@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { oceanApi } from "./api/apiClient";
 import { DEPTHS, type ArgoFloat, type Coordinate, type FieldId, type FieldPoint, type OceanProfile, type RunStatus } from "./api/types";
 import { OceanMap } from "./map/OceanMap";
-import { ProfilePanel } from "./components/profile/ProfilePanel";
 import type { BasemapId } from "./map/basemaps";
 import { CalendarControl } from "./components/CalendarControl";
 import { BasemapToggle } from "./components/BasemapToggle";
@@ -129,7 +128,26 @@ export function App() {
   return (
     <>
       <div className="map-canvas">
-        <OceanMap basemap={basemap} field={field} points={points} floats={floats} showGrid={showGrid} showArgo={showArgo} showSampling={showSampling} showSaliency={showSaliency} selected={selected ?? undefined} onSelect={chooseLocation} />
+        <OceanMap 
+          basemap={basemap} 
+          field={field} 
+          points={points} 
+          floats={floats} 
+          showGrid={showGrid} 
+          showArgo={showArgo} 
+          showSampling={showSampling} 
+          showSaliency={showSaliency} 
+          selected={selected ?? undefined} 
+          onSelect={chooseLocation}
+          date={selectedAnalysisDate}
+          fieldLabel={selectedField.label}
+          fieldUnit={selectedField.unit}
+          isDepthField={selectedField.depth}
+          profile={profile}
+          panelData={panelData}
+          apiError={apiError}
+          onClearSelection={() => setSelected(null)}
+        />
       </div>
       
       <CalendarControl
@@ -163,9 +181,11 @@ export function App() {
         <div className="rail-section-label">RECONSTRUCTED FIELDS</div>
         {fieldDefinitions.map((item) => (
           <div key={item.id} className={`layer-btn ${field === item.id ? "active" : ""}`} onClick={() => {
-            setField(item.id);
-            setProfile(undefined);
-            setPanelData(undefined);
+            if (field !== item.id) {
+              setField(item.id);
+              setProfile(undefined);
+              setPanelData(undefined);
+            }
           }} data-name={item.label} data-short={item.short}>
             <span className="swatch" style={{ background: item.color }}></span>
             <span className="lbl">{item.label}</span>
@@ -224,102 +244,6 @@ export function App() {
         </div>
       </div>
 
-      <div className={`depth-rail ${!selectedField.depth ? "muted" : ""}`}>
-        <div className="cap">Depth</div>
-        <div className="depth-track-wrap">
-          <div className="depth-track"></div>
-          {DEPTHS.map((d, i) => (
-            <div key={d} className="depth-tick" style={{ top: `${(i / (DEPTHS.length - 1)) * 100}%` }}>
-              <div className="mk"></div>
-              <div className="lb">{d}m</div>
-            </div>
-          ))}
-          <div className="depth-handle" style={{ top: `${(depthIndex / (DEPTHS.length - 1)) * 100}%` }}></div>
-          <div 
-            style={{ position: 'absolute', inset: 0, cursor: 'pointer', zIndex: 10 }}
-            onClick={(e) => {
-              if (!selectedField.depth) return;
-              const rect = e.currentTarget.getBoundingClientRect();
-              const t = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-              const idx = Math.round(t * (DEPTHS.length - 1));
-              setDepthIndex(idx);
-            }}
-          />
-        </div>
-        <div className="depth-readout">
-          <div className="val">{depth}</div>
-          <div className="unit">METERS</div>
-        </div>
-      </div>
-
-      <div className={`profile-panel ${selected ? "show" : ""}`}>
-        <div className="pp-close" style={{ zIndex: 50, pointerEvents: 'auto' }} onClick={(e) => { e.stopPropagation(); setSelected(null); }}>✕</div>
-        <div className="pp-head">
-          <div className="coord">
-            {selected
-              ? geoService.isLand(selected.lat, selected.lon)
-                ? `⛰️ LAND · ${formatLocation(selected)}`
-                : !geoService.isInDomain(selected.lat, selected.lon)
-                ? `🌐 OUT OF DOMAIN · ${formatLocation(selected)}`
-                : `🌊 OCEAN · ${formatLocation(selected)}`
-              : "No location selected"}
-          </div>
-          <div className="region">
-            {selected && geoService.isLand(selected.lat, selected.lon)
-              ? "Land Mass (Subsurface Profile N/A)"
-              : selected && !geoService.isInDomain(selected.lat, selected.lon)
-              ? "Outside Model Domain (5°N–30°N, 45°E–105°E)"
-              : `${status?.analysisWeek ?? "—"} · nearest ARGO ${profile?.nearestArgoKm ? `${profile.nearestArgoKm.toFixed(0)} km` : "—"}`}
-          </div>
-        </div>
-        <div className="pp-body" style={{ height: 'calc(100vh - 120px)', overflow: 'hidden' }}>
-          {selected && geoService.isLand(selected.lat, selected.lon) ? (
-            <div className="land-warning-card" style={{ padding: "36px 20px", textAlign: "center", background: "rgba(255, 122, 82, 0.06)", border: "1px dashed rgba(255, 122, 82, 0.4)", borderRadius: "10px", margin: "10px 0" }}>
-              <div style={{ fontSize: "28px", marginBottom: "8px" }}>⛰️</div>
-              <b style={{ fontSize: "14px", color: "#ff7a52", letterSpacing: "0.05em" }}>LAND LOCATION SELECTED</b>
-              <p style={{ fontSize: "12px", marginTop: "10px", color: "#a0b0b8", lineHeight: "1.5" }}>
-                Coordinate <strong>{formatLocation(selected)}</strong> is on land mass. Subsurface ocean profiles (0–1000m) are only computed for water cells.
-              </p>
-            </div>
-          ) : selected && !geoService.isInDomain(selected.lat, selected.lon) ? (
-            <div className="land-warning-card" style={{ padding: "36px 20px", textAlign: "center", background: "rgba(255, 180, 0, 0.06)", border: "1px dashed rgba(255, 180, 0, 0.4)", borderRadius: "10px", margin: "10px 0" }}>
-              <div style={{ fontSize: "28px", marginBottom: "8px" }}>🌐</div>
-              <b style={{ fontSize: "14px", color: "#ffb400", letterSpacing: "0.05em" }}>OUTSIDE MODEL DOMAIN</b>
-              <p style={{ fontSize: "12px", marginTop: "10px", color: "#a0b0b8", lineHeight: "1.5" }}>
-                Coordinate <strong>{formatLocation(selected)}</strong> is outside the OceanEmbed domain (5.0°N–30.0°N, 45.0°E–105.0°E). Reconstructed subsurface fields and metrics are only computed within this coverage box.
-              </p>
-            </div>
-          ) : (
-            <ProfilePanel 
-              field={field} 
-              profile={profile ?? null} 
-              panelData={panelData ?? null} 
-              isOceanMissing={(field === 'temperature' || field === 'salinity') ? profile === null : panelData === null} 
-              apiError={apiError} 
-            />
-          )}
-        </div>
-      </div>
-
-      <div className="bottom-model-bar">
-        <div className="bmb-brand">
-          <div className="bmb-pulse-dot"></div>
-          <span className="bmb-model-name">OCEANEMBED</span>
-          <span className="bmb-chip">CBAM-CNN · v1.0.0</span>
-        </div>
-        <div className="bmb-sep"></div>
-        <div className="bmb-subtitle">
-          Convolutional Block Attention Reanalysis
-        </div>
-        <div className="bmb-sep"></div>
-        <div className="bmb-specs">
-          <span className="bmb-spec-item"><b>GRID:</b> 0.25° × 0.25°</span>
-          <span className="bmb-spec-dot">·</span>
-          <span className="bmb-spec-item"><b>DEPTH:</b> 0–1000m</span>
-          <span className="bmb-spec-dot">·</span>
-          <span className="bmb-spec-item"><b>CYCLE:</b> {status?.analysisWeek ?? "2026-W35"}</span>
-        </div>
-      </div>
 
     </>
   );
