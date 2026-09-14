@@ -89,6 +89,15 @@ for (let lon = 45; lon <= 105; lon += 0.25) {
   gridLines.push({ source: [lon, 5], target: [lon, 30], level });
 }
 
+const DOMAIN_BOUNDS: [[number, number], [number, number]] = [[44.8, 4.8], [105.2, 30.2]];
+
+function fitDomain(map: maplibregl.Map) {
+  map.fitBounds(DOMAIN_BOUNDS, {
+    padding: { top: 66, bottom: 56, left: 64, right: 96 },
+    duration: 0,
+  });
+}
+
 export function OceanMap({ basemap, field, points, floats, showGrid, showArgo, showSampling, showSaliency, selected, onSelect }: Props) {
   const node = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -105,12 +114,30 @@ export function OceanMap({ basemap, field, points, floats, showGrid, showArgo, s
       map.getCanvas().style.cursor = land ? "default" : "pointer";
     });
 
-    const overlay = new MapboxOverlay({ interleaved: true, layers: [] });
+    map.on("load", () => fitDomain(map));
+
+    const overlay = new MapboxOverlay({ interleaved: false, layers: [] });
     map.addControl(overlay as any);
     overlayRef.current = overlay;
 
     mapRef.current = map;
-    return () => { map.remove(); mapRef.current = null; overlayRef.current = null; };
+
+    const handleResize = () => {
+      if (mapRef.current) {
+        mapRef.current.resize();
+        fitDomain(mapRef.current);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    document.addEventListener("fullscreenchange", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      document.removeEventListener("fullscreenchange", handleResize);
+      map.remove();
+      mapRef.current = null;
+      overlayRef.current = null;
+    };
   }, [onSelect]);
 
   useEffect(() => {

@@ -125,7 +125,7 @@ export function App() {
   const chooseLocation = useCallback((location: Coordinate) => setSelected(location), []);
 
   return (
-    <div id="root">
+    <>
       <div className="map-canvas">
         <OceanMap basemap={basemap} field={field} points={points} floats={floats} showGrid={showGrid} showArgo={showArgo} showSampling={showSampling} showSaliency={showSaliency} selected={selected ?? undefined} onSelect={chooseLocation} />
       </div>
@@ -342,6 +342,6 @@ export function App() {
         </div>
       </div>
 
-    </div>
+    </>
   );
 }
