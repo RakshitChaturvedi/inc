@@ -4,34 +4,72 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-def compute_wind_stress_curl(ds: xr.Dataset) -> xr.Dataset:
-    """
-    Computes wind stress curl using central finite differences.
-    Assumes wind_U and wind_V are present in the dataset.
-    """
-    if "wind_u" not in ds.data_vars or "wind_v" not in ds.data_vars:
-        raise ValueError("wind_U and wind_V required for wind stress curl.")
+EARTH_RADIUS = 6_371_000.0
+AIR_DENSITY = 1.225
+DRAG_COEFFICIENT = 1.3e-3
 
-    # Earth radius in meters
-    R = 6371000.0 
-    
-    # Convert lat/lon spacing to radians
-    lon_rad = np.deg2rad(ds.longitude)
-    lat_rad = np.deg2rad(ds.latitude)
-    
-    # Calculate grid spacing in meters (dx depends on latitude, dy is constant)
-    dx = R * np.cos(lat_rad) * float(lon_rad.diff("longitude").mean())
-    dy = R * float(lat_rad.diff("latitude").mean())
-    
-    # Central difference derivatives: dV/dx - dU/dy
-    dv_dx = ds["wind_v"].differentiate("longitude") / dx
-    du_dy = ds["wind_u"].differentiate("latitude") / dy
-    
-    # Standard pseudo-stress curl approximation
-    ds["wind_stress_curl"] = dv_dx - du_dy
-    ds["wind_stress_curl"].attrs["units"] = "N m-3"
-    
-    return ds
+def compute_drag_coefficient(wind_speed: xr.DataArray) -> xr.DataArray:
+    return xr.full_like(wind_speed, DRAG_COEFFICIENT)
+
+def compute_wind_stress(wind_u: xr.DataArray, wind_v: xr.DataArray, wind_speed: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray]:
+    # compute surface wind-stress components (Units: N/m^2)
+    # tau_x = rho_air * Cd * |U| * U
+    # tau_y = rho_air * Cd * |U| * V
+
+    cd = compute_drag_coefficient(wind_speed)
+    tau_x = AIR_DENSITY*cd*wind_speed*wind_u
+    tau_y = AIR_DENSITY*cd*wind_speed*wind_v
+
+    tau_x.attrs.update({
+        "long_name": "zonal wind stress",
+        "units": "N m-2",  
+        "air_density": AIR_DENSITY,
+        "drag_coefficient": DRAG_COEFFICIENT
+    })
+
+    tau_y.attrs.update({
+        "long_name": "meridonal wind stress",
+        "units": "N m-2",  
+        "air_density": AIR_DENSITY,
+        "drag_coefficient": DRAG_COEFFICIENT
+    })
+
+    return tau_x, tau_y
+
+def compute_wind_stress_curl(tau_x: xr.DataArray, tau_y: xr.DataArray) -> xr.Dataset:
+    """
+    curl_tau = d(tau_y)/dx - d(tau_x)/dy
+    derivatives cal wrt lat/lon and converted to physical spherical-earth dist.
+    """
+    lat_rad = np.deg2rad(tau_x["latitude"])
+    deg2rad = 180.0/np.pi
+
+    d_tau_y_dlon = tau_y.differentiate("longitude")
+    d_tau_x_dlat = tau_x.differentiate("latitude")
+
+    d_tau_y_dlambda = d_tau_x_dlat * deg2rad
+    d_tau_x_dphi = d_tau_x_dlat * deg2rad
+    cos_lat = np.cos(lat_rad)
+
+    # spehrical earth. dx=R*cos(phi)*d(lambda), dy=R*d(phi)
+    d_tau_y_dx = d_tau_y_dlambda/(EARTH_RADIUS*cos_lat)
+    d_tau_x_dy = d_tau_x_dphi/EARTH_RADIUS
+
+    curl = d_tau_y_dx - d_tau_x_dy
+    curl.name = "wind_stress_curl"
+
+    curl.attrs.update({
+        "long_name": "curl of surface wind stress",
+        "standard_name": "wind_stress_curl",
+        "units": "N m-3",
+        "formula": "d(tau_y)/dx - d(tau_x)/dy",
+        "earth_radius_m": EARTH_RADIUS,
+        "numerical_differentiation": "xarray.differentiate",
+        "interior_difference": "centered",
+        "boundary_difference": "one-sided",
+    })
+
+    return curl
 
 def add_spatial_features(ds: xr.Dataset) -> xr.Dataset:
     """

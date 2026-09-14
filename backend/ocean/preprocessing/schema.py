@@ -96,7 +96,7 @@ def standardize_dataset(ds: xr.Dataset, *, dataset_name: str) -> xr.Dataset:
 def open_standardized(path: str | Path, *, dataset_name: str) -> xr.Dataset:
     # open netcdf dataset lazily and standardize its corods
 
-    print(f"Opening: {path}")
+    #print(f"Opening: {path}")
     path = Path(path)
     if not path.exists():
         raise FileNotFoundError(path)

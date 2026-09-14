@@ -13,3 +13,106 @@ __pycache__/
 .venv/
 venv/
 *.egg-info/
+backend/data/
+backend/model-registry/
+
+
+# ==========================================
+# Byte-compiled / optimized / DLL files
+# ==========================================
+__pycache__/
+*.py[codz]
+*$py.class
+*.so
+
+# ==========================================
+# Virtual Environments & Dependencies
+# ==========================================
+# It is better to use requirements.txt or pyproject.toml to share dependencies
+.venv/
+venv/
+ENV/
+env/
+pythonenv*/
+
+# Poetry, Pipenv, and Conda files
+.venv
+.pypy_cache/
+.pep8
+.runtime/
+
+# ==========================================
+# Distribution / Packaging
+# ==========================================
+# Files created when building libraries or apps
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller (when turning python code into .exe)
+*.manifest
+*.spec
+
+# ==========================================
+# Testing and Coverage
+# ==========================================
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+htmlcov/
+
+# ==========================================
+# Environment Variables & Secrets (CRITICAL)
+# ==========================================
+# Never commit your private API keys or database passwords!
+.env
+.env.*
+.venv
+env.ini
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ==========================================
+# IDEs, Editors, and OS-specific files
+# ==========================================
+# VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# PyCharm / JetBrains
+.idea/
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# ==========================================
+# Jupyter Notebooks & Data Science
+# ==========================================
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*

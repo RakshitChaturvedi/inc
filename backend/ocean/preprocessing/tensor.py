@@ -6,7 +6,9 @@ from pathlib import Path
 
 def build_input_array(
     ds: xr.Dataset, 
-    registry_dir: Path
+    registry_dir: Path,
+    *,
+    ocean_mask=None
 ) -> np.ndarray:
     """
     Extracts the 12 channels in the strict model contract order,
@@ -39,13 +41,50 @@ def build_input_array(
     stacked = np.stack(arrays, axis=0) # Shape: [12, 101, 241]
     
     # 2. Apply the Ocean Mask
-    mask_path = registry_dir / "oceanembed-v1" / "ocean_mask.nc"
-    if mask_path.exists():
+    if ocean_mask is None:
+        mask_path = registry_dir / "oceanembed-v1.0.0" / "ocean_mask.nc"
+        if not mask_path.exists():
+            raise FileNotFoundError(f"Ocean mask not found: {mask_path}")
         with xr.open_dataset(mask_path) as mask_ds:
-            # Assuming mask_value = 1 for ocean, 0/NaN for land
-            mask = mask_ds["mask"].values.squeeze()
-            # Broadcast mask across all 12 channels
-            stacked = np.where(mask == 1, stacked, 0.0)
-            
-    # 3. Add the batch dimension: [1, 12, 101, 241]
-    return np.expand_dims(stacked, axis=0).astype(np.float32)
+            if "ocean_mask" not in mask_ds:
+                raise ValueError("Registry mask file doesnt contain 'ocean_mask'")
+            ocean_mask = (mask_ds["ocean_mask"].values.squeeze())
+    ocean_mask = np.asarray(ocean_mask, dtype=bool)
+    if ocean_mask.shape != (101, 241):
+        raise ValueError(f"Ocean mask has shape {ocean_mask.shape}; expected (101, 241)")
+
+    print()
+    print("="*70)
+    print("TENSOR MASKING")
+    print("=" * 70)
+
+    print(f"Computational ocean cells: {int(ocean_mask.sum())}")
+    print(f"Exclusded cells :{int((~ocean_mask).sum())}")
+
+    for i, var in enumerate(channel_order):
+        channel = stacked[i]
+        ocean_nan = (np.isnan(channel) & ocean_mask)
+        excluded_nan = (np.isnan(channel) & ~ocean_mask)
+        print(f"{var:22s} ocean NaNs={int(ocean_nan.sum()):5d}, excluded NaNs={int(excluded_nan.sum()):5d}")
+
+    # apply computationa mask
+    stacked = np.where(ocean_mask[None, :, :], stacked, 0.0)
+
+    ocean_nan_after = (np.isnan(stacked) & ocean_mask[None, :, :])
+    if ocean_nan_after.any():
+        count = int(ocean_nan_after.sum())
+        raise ValueError(f"NaNs remain inside the effective computational ocean mask: {count}")
+
+    if np.isnan(stacked).any():
+        raise ValueError("NaNs remain in final tensor after masking")
+
+    # add batch dimension
+    final_array = np.expand_dims(stacked, axis=0).astype(np.float32)
+    if final_array.shape != (1, 12, 101, 241):
+        raise ValueError(f"Final tensor has shape {final_array.shape}; expected (1, 12, 101, 241)")
+    print()
+    print(f"Final tensor shape: {final_array.shape}")
+    print(f"Final tensor dtype: {final_array.dtype}")
+    print(f"Final tensor NaNs: {int(np.isnan(final_array).sum())}")
+    
+    return final_array

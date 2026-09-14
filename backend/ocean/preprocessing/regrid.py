@@ -39,7 +39,8 @@ def create_regridder(
 
     regridder = xe.Regridder(
         ds, target_grid, method, filename=str(weight_file), 
-        reuse_weights=reuse_weights and weight_file.exists()
+        reuse_weights=reuse_weights and weight_file.exists(),
+        unmapped_to_nan=True
     )
 
     return regridder
@@ -69,7 +70,8 @@ def regrid_dataset(
     if regridder is None:
         regridder = xe.Regridder(
             ds_xe, target_xe, method, filename=str(weight_file), 
-            reuse_weights=reuse_weights and weight_file.exists()
+            reuse_weights=reuse_weights and weight_file.exists(),
+            unmapped_to_nan = True
         )
         
     result = regridder(ds_xe, keep_attrs=True)
