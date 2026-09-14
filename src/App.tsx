@@ -4,13 +4,15 @@ import { DEPTHS, type ArgoFloat, type Coordinate, type FieldId, type FieldPoint,
 import { OceanMap } from "./map/OceanMap";
 import { ProfilePanel } from "./components/profile/ProfilePanel";
 import type { BasemapId } from "./map/basemaps";
+import { CalendarControl } from "./components/CalendarControl";
+import { BasemapToggle } from "./components/BasemapToggle";
 
 const fieldDefinitions: { id: FieldId; label: string; unit: string; depth: boolean; color: string; short: string }[] = [
-  { id: "temperature", label: "Temperature", unit: "°C", depth: true, color: "#ff9d5c", short: "OSTS" },
-  { id: "salinity", label: "Salinity", unit: "psu", depth: true, color: "#7ab8ff", short: "OSSS" },
-  { id: "uncertainty", label: "Uncertainty", unit: "σ °C", depth: true, color: "#b9c6cc", short: "σ" },
-  { id: "tchp", label: "Cyclone heat", unit: "kJ cm⁻²", depth: false, color: "#ff5a5a", short: "TCHP" },
-  { id: "mld", label: "Mixed-layer depth", unit: "m", depth: false, color: "#b29bf2", short: "MLD" },
+  { id: "temperature", label: "Temperature", unit: "°C", depth: true, color: "#FF9B5E", short: "OSTS" },
+  { id: "salinity", label: "Salinity", unit: "psu", depth: true, color: "#58A6FF", short: "OSSS" },
+  { id: "uncertainty", label: "Uncertainty", unit: "σ °C", depth: true, color: "#B8C4CC", short: "σ" },
+  { id: "tchp", label: "Cyclone heat", unit: "kJ cm⁻²", depth: false, color: "#FF5C63", short: "TCHP" },
+  { id: "mld", label: "Mixed-layer depth", unit: "m", depth: false, color: "#A98BFF", short: "MLD" },
 ];
 
 import { geoService } from "./services/GeospatialService";
@@ -130,86 +132,41 @@ export function App() {
         <OceanMap basemap={basemap} field={field} points={points} floats={floats} showGrid={showGrid} showArgo={showArgo} showSampling={showSampling} showSaliency={showSaliency} selected={selected ?? undefined} onSelect={chooseLocation} />
       </div>
       
-      <div className="flagline"></div>
+      <CalendarControl
+        date={selectedAnalysisDate}
+        onSelectDate={setSelectedAnalysisDate}
+      />
 
-      <div className="topbar">
-        <div className="brand">
-          <div className="brand-badge-icon">
-            <span className="dot"></span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#52e0c4" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M2 12h3l3-7 4 14 3-7h7" />
-            </svg>
-          </div>
-          <div className="brand-titles">
-            <span className="brand-name">OCEANEMBED</span>
-            <span className="brand-model-pill">CBAM-CNN · v1.0</span>
-          </div>
-        </div>
-        
-        <div className="date-selector-pill">
-          <div className="date-pill-label">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#52e0c4" strokeWidth="2">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-              <line x1="16" y1="2" x2="16" y2="6"/>
-              <line x1="8" y1="2" x2="8" y2="6"/>
-              <line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-            <span>DATE</span>
-          </div>
-          <input 
-            type="date" 
-            min="2020-01-01" 
-            max="2026-12-31" 
-            value={selectedAnalysisDate}
-            onChange={(e) => setSelectedAnalysisDate(e.target.value)}
-            className="date-input"
-          />
-        </div>
-
-        <div style={{ flex: 1 }}></div>
-
-        <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
-          <div className="basemap-toggle-segmented">
-            {(["basic", "satellite"] as BasemapId[]).map((item) => (
-              <button key={item} className={basemap === item ? "active" : ""} onClick={() => setBasemap(item)}>
-                {item === "basic" ? (
-                  <>
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
-                    <span>MAP</span>
-                  </>
-                ) : (
-                  <>
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
-                    <span>SATELLITE</span>
-                  </>
-                )}
-              </button>
-            ))}
-          </div>
-
-          <div className="status-badge">
-            <span className={`liveDot ${status?.gateStatus === 'published' ? 'published' : ''}`}></span>
-            <span className="status-main">{status?.gateStatus === "published" ? "NRT READY" : "LOADING"}</span>
-            <span className="status-cycle">{status?.analysisWeek ?? "2026-W35"}</span>
-          </div>
-        </div>
-      </div>
+      <BasemapToggle
+        basemap={basemap}
+        onChangeBasemap={setBasemap}
+      />
 
       <div className={`rail ${railOpen ? "open" : ""}`}>
-        <div className="rail-toggle" onClick={() => setRailOpen(!railOpen)}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#52e0c4" strokeWidth="2.4" style={{ marginLeft: '3px' }}>
-            <path d="M9 6l6 6-6 6" />
+        <div className="rail-toggle" onClick={() => setRailOpen(!railOpen)} title={railOpen ? "Collapse control panel" : "Expand control panel"}>
+          <svg
+            className="rail-toggle-chevron"
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#42E8D4"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="15 18 9 12 15 6" />
           </svg>
-          <span>{railOpen ? "COLLAPSE" : "EXPAND"}</span>
+          <span className="rail-toggle-text">{railOpen ? "COLLAPSE" : "EXPAND"}</span>
         </div>
         
-        <div className="rail-section-label">Reconstructed fields</div>
+        <div className="rail-section-label">RECONSTRUCTED FIELDS</div>
         {fieldDefinitions.map((item) => (
           <div key={item.id} className={`layer-btn ${field === item.id ? "active" : ""}`} onClick={() => {
             setField(item.id);
             setProfile(undefined);
             setPanelData(undefined);
-          }} data-name={item.label}>
+          }} data-name={item.label} data-short={item.short}>
             <span className="swatch" style={{ background: item.color }}></span>
             <span className="lbl">{item.label}</span>
             <span className="num">{item.short}</span>
@@ -217,21 +174,43 @@ export function App() {
         ))}
         
         <div className="rail-divider"></div>
-        <div className="rail-section-label">Overlays</div>
+        <div className="rail-section-label">OVERLAYS</div>
         
-        <div className="toggle-row" onClick={() => setShowGrid(!showGrid)}>
+        <div className={`toggle-row ${showGrid ? "active" : ""}`} onClick={() => setShowGrid(!showGrid)} data-name="0.25° Model Grid">
+          <svg className="toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="3" y1="9" x2="21" y2="9"></line>
+            <line x1="3" y1="15" x2="21" y2="15"></line>
+            <line x1="9" y1="3" x2="9" y2="21"></line>
+            <line x1="15" y1="3" x2="15" y2="21"></line>
+          </svg>
           <span className="t-lbl">0.25° Model Grid</span>
           <div className={`switch ${showGrid ? "on" : ""}`}></div>
         </div>
-        <div className="toggle-row" onClick={() => setShowArgo(!showArgo)}>
+        <div className={`toggle-row ${showArgo ? "active" : ""}`} onClick={() => setShowArgo(!showArgo)} data-name="ARGO floats">
+          <svg className="toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+          </svg>
           <span className="t-lbl">ARGO floats</span>
           <div className={`switch ${showArgo ? "on" : ""}`}></div>
         </div>
-        <div className="toggle-row" onClick={() => setShowSampling(!showSampling)}>
+        <div className={`toggle-row ${showSampling ? "active" : ""}`} onClick={() => setShowSampling(!showSampling)} data-name="Suggested sampling">
+          <svg className="toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="22" y1="12" x2="18" y2="12"></line>
+            <line x1="6" y1="12" x2="2" y2="12"></line>
+            <line x1="12" y1="6" x2="12" y2="2"></line>
+            <line x1="12" y1="22" x2="12" y2="18"></line>
+          </svg>
           <span className="t-lbl">Suggested sampling</span>
           <div className={`switch ${showSampling ? "on" : ""}`}></div>
         </div>
-        <div className="toggle-row disabled">
+        <div className="toggle-row disabled" data-name="Saliency (future)">
+          <svg className="toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
           <span className="t-lbl">Saliency (future)</span>
           <div className="switch"></div>
         </div>
