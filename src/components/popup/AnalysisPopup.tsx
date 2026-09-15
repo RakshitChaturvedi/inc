@@ -112,11 +112,11 @@ export function AnalysisPopup({
           <>
             <line 
               x1={anchor.x} y1={anchor.y} 
-              x2={popupX + 24} y2={popupY + 40} 
-              stroke="#1d4b77" strokeWidth="1.5" opacity={1.0} 
+              x2={popupX + 20} y2={popupY + 36} 
+              stroke="#2B5AAF" strokeWidth="1.2" opacity={1.0} 
             />
             {/* Map point marker */}
-            <circle cx={anchor.x} cy={anchor.y} r="4" fill="#0B151D" stroke="#1d4b77" strokeWidth="2" />
+            <circle cx={anchor.x} cy={anchor.y} r="3.5" fill="#0A1118" stroke="#2B5AAF" strokeWidth="1.5" />
           </>
       </svg>
 
@@ -162,7 +162,7 @@ export function AnalysisPopup({
         <div className="ap-body">
           {geoService.isLand(selected.lat, selected.lon) ? (
             <div className="ap-error">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 8, stroke: '#718691' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 8, stroke: '#99A8A9' }}>
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                 <circle cx="12" cy="10" r="3"></circle>
               </svg>
@@ -172,7 +172,7 @@ export function AnalysisPopup({
             </div>
           ) : !geoService.isInDomain(selected.lat, selected.lon) ? (
             <div className="ap-error">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 8, stroke: '#718691' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 8, stroke: '#99A8A9' }}>
                 <circle cx="12" cy="12" r="10"></circle>
                 <line x1="2" y1="12" x2="22" y2="12"></line>
                 <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
@@ -218,13 +218,13 @@ export function AnalysisPopup({
               <div className="ap-chart-field">{panelData.depth}m DEPTH</div>
               <div style={{ display: 'flex', gap: '24px', marginTop: '16px' }}>
                 <div>
-                  <div style={{ fontSize: '10px', color: '#8FA3AE', fontWeight: 600, letterSpacing: '0.05em' }}>TEMPERATURE</div>
+                  <div style={{ fontSize: '10px', color: '#99A8A9', fontWeight: 600, letterSpacing: '0.05em' }}>TEMPERATURE</div>
                   <div className="ap-scalar-value" style={{ marginTop: '4px' }}>
                     ± {panelData.tempUncertainty?.toFixed(3)} <span>σ °C</span>
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '10px', color: '#8FA3AE', fontWeight: 600, letterSpacing: '0.05em' }}>SALINITY</div>
+                  <div style={{ fontSize: '10px', color: '#99A8A9', fontWeight: 600, letterSpacing: '0.05em' }}>SALINITY</div>
                   <div className="ap-scalar-value" style={{ marginTop: '4px' }}>
                     ± {panelData.salUncertainty?.toFixed(3)} <span>σ psu</span>
                   </div>

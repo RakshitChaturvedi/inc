@@ -27,7 +27,7 @@ export function DepthChart({ profile, variable, fieldLabel, fieldUnit }: DepthCh
     }));
 
   if (dataPoints.length === 0) {
-    return <div style={{ padding: '20px', color: '#8FA3AE', fontSize: '13px' }}>No prediction data available for this field.</div>;
+    return <div style={{ padding: '20px', color: '#99A8A9', fontSize: '12px' }}>No prediction data available for this field.</div>;
   }
 
   const getY = (index: number) => padding.top + (index / (dataPoints.length - 1 || 1)) * innerHeight;
@@ -55,14 +55,14 @@ export function DepthChart({ profile, variable, fieldLabel, fieldUnit }: DepthCh
     <div style={{ display: 'flex', flexDirection: 'column' }}>
       <div className="ap-chart-wrapper" style={{ width: '100%', height: `${height}px`, position: 'relative' }}>
         <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
-          <text x={padding.left} y={12} fill="#8FA3AE" fontSize="9px" fontFamily="var(--sans)" letterSpacing="0.05em">
+          <text x={padding.left} y={12} fill="#99A8A9" fontSize="9px" fontFamily="var(--sans)" letterSpacing="0.05em">
             PREDICTED {fieldLabel.toUpperCase()} ({fieldUnit})
           </text>
 
           {ticks.map(tick => (
             <g key={`tick-${tick}`}>
-              <line x1={getX(tick)} y1={padding.top} x2={getX(tick)} y2={height - padding.bottom} stroke="#243642" strokeWidth="1" strokeDasharray="2 4" />
-              <text x={getX(tick)} y={24} fill="#8FA3AE" fontSize="10px" fontFamily="var(--sans)" textAnchor="middle">
+              <line x1={getX(tick)} y1={padding.top} x2={getX(tick)} y2={height - padding.bottom} stroke="rgba(153, 168, 169, 0.18)" strokeWidth="1" strokeDasharray="2 4" />
+              <text x={getX(tick)} y={24} fill="#99A8A9" fontSize="10px" fontFamily="var(--sans)" textAnchor="middle">
                 {tick}
               </text>
             </g>
@@ -73,24 +73,24 @@ export function DepthChart({ profile, variable, fieldLabel, fieldUnit }: DepthCh
             const isSelected = i === selectedDepthIdx;
             return (
               <g key={`depth-grid-${d.depth}`}>
-                <line x1={padding.left} y1={y} x2={width - padding.right} y2={y} stroke={isSelected ? "#42E8D4" : "#243642"} strokeWidth="1" opacity={isSelected ? 1.0 : 0.5} />
-                <text x={padding.left - 4} y={y + 3} fill={isSelected ? "#E8F1F5" : "#8FA3AE"} fontSize="10px" fontFamily="var(--sans)" textAnchor="end" fontWeight={isSelected ? 600 : 400}>
+                <line x1={padding.left} y1={y} x2={width - padding.right} y2={y} stroke={isSelected ? "#2B5AAF" : "rgba(153, 168, 169, 0.18)"} strokeWidth="1" opacity={isSelected ? 1.0 : 0.6} />
+                <text x={padding.left - 4} y={y + 3} fill={isSelected ? "#ADBCC7" : "#99A8A9"} fontSize="10px" fontFamily="var(--sans)" textAnchor="end" fontWeight={isSelected ? 600 : 400}>
                   {d.depth}m
                 </text>
               </g>
             );
           })}
 
-          <path d={pathD} fill="none" stroke="#42E8D4" strokeWidth="2.5" />
+          <path d={pathD} fill="none" stroke="#2B5AAF" strokeWidth="2.2" />
 
           {dataPoints.map((d, i) => (
             <circle 
               key={`pt-${i}`} 
               cx={getX(d.value)} 
               cy={getY(i)} 
-              r={i === selectedDepthIdx ? "5" : "4"} 
-              fill={i === selectedDepthIdx ? "#42E8D4" : "#0B151D"} 
-              stroke="#42E8D4" 
+              r={i === selectedDepthIdx ? "4.5" : "3.5"} 
+              fill={i === selectedDepthIdx ? "#2B5AAF" : "#0A1118"} 
+              stroke="#2B5AAF" 
               strokeWidth="1.5" 
             />
           ))}
@@ -110,10 +110,10 @@ export function DepthChart({ profile, variable, fieldLabel, fieldUnit }: DepthCh
                   onClick={() => setSelectedDepthIdx(i === selectedDepthIdx ? null : i)}
                 />
                 <g className="tooltip-overlay" style={{ pointerEvents: 'none', opacity: 0 }}>
-                  <circle cx={cx} cy={cy} r="5" fill="#42E8D4" />
-                  <rect x={cx + 10} y={cy - 16} width={64} height={32} rx="4" fill="#0B151D" stroke="#243642" />
-                  <text x={cx + 16} y={cy - 2} fill="#8FA3AE" fontSize="9px" fontFamily="var(--sans)" fontWeight="600">{d.depth}m</text>
-                  <text x={cx + 16} y={cy + 9} fill="#E8F1F5" fontSize="11px" fontFamily="var(--sans)" fontWeight="500">{d.value.toFixed(2)}</text>
+                  <circle cx={cx} cy={cy} r="4.5" fill="#2B5AAF" />
+                  <rect x={cx + 10} y={cy - 16} width={64} height={32} rx="0" fill="#0E1822" stroke="rgba(153, 168, 169, 0.3)" />
+                  <text x={cx + 16} y={cy - 2} fill="#99A8A9" fontSize="9px" fontFamily="var(--sans)" fontWeight="600">{d.depth}m</text>
+                  <text x={cx + 16} y={cy + 9} fill="#ADBCC7" fontSize="11px" fontFamily="var(--sans)" fontWeight="500">{d.value.toFixed(2)}</text>
                 </g>
               </g>
             );
@@ -124,26 +124,26 @@ export function DepthChart({ profile, variable, fieldLabel, fieldUnit }: DepthCh
       {selectedPt && (
         <div style={{
           marginTop: '12px',
-          padding: '12px',
-          background: '#101F28',
-          border: '1px solid #243642',
-          borderRadius: '6px',
+          padding: '10px 12px',
+          background: '#0E1822',
+          border: '1px solid rgba(153, 168, 169, 0.24)',
+          borderRadius: '0px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '10px', color: '#8FA3AE', fontWeight: 600, letterSpacing: '0.05em' }}>DEPTH</span>
-            <span style={{ fontSize: '14px', color: '#E8F1F5', fontWeight: 500, fontFamily: 'var(--mono)' }}>{selectedPt.depth}m</span>
+            <span style={{ fontSize: '10px', color: '#99A8A9', fontWeight: 600, letterSpacing: '0.05em' }}>DEPTH</span>
+            <span style={{ fontSize: '13.5px', color: '#ADBCC7', fontWeight: 600 }}>{selectedPt.depth}m</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '10px', color: '#8FA3AE', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>{fieldLabel}</span>
-            <span style={{ fontSize: '14px', color: '#42E8D4', fontWeight: 500, fontFamily: 'var(--mono)' }}>{selectedPt.value.toFixed(2)} {fieldUnit}</span>
+            <span style={{ fontSize: '10px', color: '#99A8A9', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>{fieldLabel}</span>
+            <span style={{ fontSize: '13.5px', color: '#ADBCC7', fontWeight: 600 }}>{selectedPt.value.toFixed(2)} {fieldUnit}</span>
           </div>
           {selectedPt.uncertainty !== undefined && (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: '10px', color: '#8FA3AE', fontWeight: 600, letterSpacing: '0.05em' }}>UNCERTAINTY</span>
-              <span style={{ fontSize: '14px', color: '#E8F1F5', fontWeight: 500, fontFamily: 'var(--mono)' }}>± {selectedPt.uncertainty.toFixed(2)} σ</span>
+              <span style={{ fontSize: '10px', color: '#99A8A9', fontWeight: 600, letterSpacing: '0.05em' }}>UNCERTAINTY</span>
+              <span style={{ fontSize: '13.5px', color: '#ADBCC7', fontWeight: 600 }}>± {selectedPt.uncertainty.toFixed(2)} σ</span>
             </div>
           )}
         </div>

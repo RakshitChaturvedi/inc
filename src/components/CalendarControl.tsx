@@ -167,16 +167,16 @@ export const CalendarControl: React.FC<CalendarControlProps> = ({
       >
         <svg
           className="calendar-icon"
-          width="16"
-          height="16"
+          width="15"
+          height="15"
           viewBox="0 0 24 24"
           fill="none"
-          stroke="#42E8D4"
-          strokeWidth="2"
+          stroke="currentColor"
+          strokeWidth="1.8"
           strokeLinecap="round"
           strokeLinejoin="round"
         >
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+          <rect x="3" y="4" width="18" height="18" />
           <line x1="16" y1="2" x2="16" y2="6" />
           <line x1="8" y1="2" x2="8" y2="6" />
           <line x1="3" y1="10" x2="21" y2="10" />
@@ -201,7 +201,31 @@ export const CalendarControl: React.FC<CalendarControlProps> = ({
               </svg>
             </button>
             <div className="cal-current-month-year">
-              {MONTH_NAMES[viewMonth]} {viewYear}
+              <select
+                className="cal-month-select"
+                value={viewMonth}
+                onChange={(e) => setViewMonth(parseInt(e.target.value, 10))}
+                aria-label="Select month"
+              >
+                {MONTH_NAMES.map((mName, idx) => (
+                  <option key={mName} value={idx}>
+                    {mName}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                className="cal-year-select"
+                value={viewYear}
+                onChange={(e) => setViewYear(parseInt(e.target.value, 10))}
+                aria-label="Select year"
+              >
+                {Array.from({ length: 11 }, (_, i) => 2020 + i).map((yr) => (
+                  <option key={yr} value={yr}>
+                    {yr}
+                  </option>
+                ))}
+              </select>
             </div>
             <button
               type="button"
