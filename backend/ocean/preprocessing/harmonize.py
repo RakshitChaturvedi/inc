@@ -17,11 +17,11 @@ def harmonize_sst(ds: xr.Dataset) -> xr.Dataset:
 
 
 def harmonize_sss(ds: xr.Dataset) -> xr.Dataset:
-    if "sss" not in ds:
+    if "sos" not in ds:
         raise ValueError(
-            "SSS variable 'sss' not found."
+            "SSS variable 'sos' not found."
         )
-
+    ds=ds.rename({"sos": "sss"})
     return ds[["sss"]]
 
 
@@ -39,8 +39,7 @@ def harmonize_ssh(ds: xr.Dataset) -> xr.Dataset:
 
 
 def harmonize_wind(ds: xr.Dataset) -> xr.Dataset:
-    required = {"uwnd", "vwnd"}
-
+    required = {"eastward_wind", "northward_wind"}
     missing = required - set(ds.data_vars)
 
     if missing:
@@ -49,8 +48,8 @@ def harmonize_wind(ds: xr.Dataset) -> xr.Dataset:
         )
 
     ds = ds.rename({
-        "uwnd": "wind_u",
-        "vwnd": "wind_v",
+        "eastward_wind": "wind_u",
+        "northward_wind": "wind_v",
     })
 
     variables = [
@@ -63,12 +62,11 @@ def harmonize_wind(ds: xr.Dataset) -> xr.Dataset:
     if "wind_speed" in ds:
         variables.append("wind_speed")
 
-    return ds[variables]
+    return ds[["wind_u", "wind_v"]]
 
 
 def harmonize_currents(ds: xr.Dataset) -> xr.Dataset:
-    required = {"u", "v"}
-
+    required = {"uo", "vo"}
     missing = required - set(ds.data_vars)
 
     if missing:
@@ -77,8 +75,8 @@ def harmonize_currents(ds: xr.Dataset) -> xr.Dataset:
         )
 
     ds = ds.rename({
-        "u": "current_u",
-        "v": "current_v",
+        "uo": "current_u",
+        "vo": "current_v",
     })
 
     return ds[

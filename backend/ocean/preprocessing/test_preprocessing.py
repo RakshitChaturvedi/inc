@@ -8,7 +8,7 @@ from ocean.preprocessing.pipeline import process_daily_forecast
 from ocean.preprocessing.validate import validate_tensor
 
 def test_real_data_preprocessing():
-    raw_dir = Path("data/raw")
+    raw_dir = Path("data/raw/a12_test/2025-01-01_2025-01-07")
     registry_dir = Path("model-registry")
     
     print("1. Scanning actual downloaded raw data directories...")
