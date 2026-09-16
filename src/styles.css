@@ -974,7 +974,7 @@ html, body {
   top: 50%;
   right: 18px;
   transform: translateY(-50%);
-  width: 68px;
+  width: 82px;
   height: 430px;
   max-height: calc(100vh - 160px);
   z-index: 25;
@@ -991,6 +991,7 @@ html, body {
               inset 0 1px 0 rgba(255, 255, 255, 0.08);
   user-select: none;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
 }
 
 .depth-control-panel:hover,
@@ -1242,7 +1243,7 @@ html, body {
   transform: translateY(-50%);
   background: var(--bg-surface);
   border: 1px solid var(--accent-primary);
-  border-radius: 3px;
+  border-radius: 0px;
   padding: 2px 6px;
   font-family: var(--sans);
   font-size: 10px;
@@ -1270,8 +1271,8 @@ html, body {
   text-align: center;
   background: var(--bg-surface-elevated);
   border: 1px solid var(--border-neutral);
-  border-radius: 3px;
-  padding: 5px 2px;
+  border-radius: 0px;
+  padding: 5px 3px;
   box-sizing: border-box;
 }
 
@@ -1289,8 +1290,12 @@ html, body {
   font-weight: 600;
   color: #58A6FF;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.02em;
   margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 1px;
 }
 
 /* SVG Chart Elements */
