@@ -42,7 +42,7 @@ export function App() {
   const [simStartDate, setSimStartDate] = useState("2026-08-20");
   const [simEndDate, setSimEndDate] = useState("2026-08-27");
   const [isPlayingSim, setIsPlayingSim] = useState(false);
-  const [simSpeed, setSimSpeed] = useState(1); // 0.5x, 1x, 2x, 4x
+  const [simSpeed, setSimSpeed] = useState(1); // 1x, 2x, 10x, 20x
   const [simLoop, setSimLoop] = useState(true);
 
   const [points, setPoints] = useState<FieldPoint[]>([]);

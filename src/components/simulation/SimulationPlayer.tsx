@@ -5,7 +5,7 @@ interface SimulationPlayerProps {
   endDate: string;
   currentDate: string;
   isPlaying: boolean;
-  speed: number; // 0.5, 1, 2, 4
+  speed: number; // 1, 2, 10, 20
   loop: boolean;
   onTogglePlay: () => void;
   onStepForward: () => void;
@@ -195,7 +195,7 @@ export function SimulationPlayer({
       <div className="sim-right-options">
         {/* Speed multiplier selector */}
         <div className="sim-speed-selector">
-          {[0.5, 1, 2, 4].map((s) => (
+          {[1, 2, 10, 20].map((s) => (
             <button
               key={s}
               type="button"

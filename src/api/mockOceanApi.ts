@@ -2,7 +2,7 @@ import { DEPTHS, type ArgoFloat, type Coordinate, type FieldId, type FieldPoint,
 
 const domain = { minLat: 5, maxLat: 30, minLon: 45, maxLon: 105 };
 const clamp = (n: number, low: number, high: number) => Math.max(low, Math.min(high, n));
-const wait = <T,>(value: T) => new Promise<T>((resolve) => window.setTimeout(() => resolve(value), 130));
+const wait = <T,>(value: T) => new Promise<T>((resolve) => window.setTimeout(() => resolve(value), 25));
 
 function fieldValue(field: FieldId, lat: number, lon: number, depth = 0) {
   const eddy = Math.sin((lon - 57) / 5) * Math.cos((lat - 14) / 4);
