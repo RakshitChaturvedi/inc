@@ -11,6 +11,7 @@ export type DepthProfilePoint = {
       temperature?: number;
       salinity?: number;
       uncertainty?: number;
+      salinityUncertainty?: number;
   };
   armor3d?: {
       temperature?: number;
@@ -33,6 +34,8 @@ export type OceanProfile = {
   confidence?: number;
   nearestArgoKm?: number;
   gateStatus?: string;
+  overallTempUncertainty?: number;
+  overallSalUncertainty?: number;
 };
 
 export type RunStatus = {
@@ -51,6 +54,6 @@ export interface OceanEmbedApi {
   getTchp(date: string, location: Coordinate): Promise<{ value: number; category: string; d26: number; confidence: number; week: string; location: Coordinate } | null>;
   getD26(date: string, location: Coordinate): Promise<{ value: number; tchp: number; confidence: number; week: string; location: Coordinate } | null>;
   getMld(date: string, location: Coordinate): Promise<{ value: number; confidence: number; week: string; location: Coordinate } | null>;
-  getUncertainty(date: string, location: Coordinate, depth?: number): Promise<{ value: number; week: string; location: Coordinate; depth?: number } | null>;
+  getUncertainty(date: string, location: Coordinate, depth?: number): Promise<{ tempUncertainty: number; salUncertainty: number; week: string; location: Coordinate; depth?: number } | null>;
   getEvaluationReport?(): Promise<any>;
 }

@@ -2,14 +2,45 @@ import { useEffect, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
 import type { MapMouseEvent } from "maplibre-gl";
 import { basemaps, type BasemapId } from "./basemaps";
-import type { ArgoFloat, Coordinate, FieldId, FieldPoint } from "../api/types";
+import type { ArgoFloat, Coordinate, FieldId, FieldPoint, OceanProfile } from "../api/types";
+import type { SelectedLocation, GraphCardCluster } from "../types/comparison";
+import { CardsManager } from "../components/cards/CardsManager";
+import { MapMarkersOverlay } from "../components/map/MapMarkersOverlay";
 
 import { MapboxOverlay } from '@deck.gl/mapbox';
 import { BitmapLayer, GeoJsonLayer, ScatterplotLayer, LineLayer } from '@deck.gl/layers';
 import { MaskExtension } from '@deck.gl/extensions';
 import { geoService } from "../services/GeospatialService";
 
-type Props = { basemap: BasemapId; field: FieldId; points: FieldPoint[]; floats: ArgoFloat[]; showGrid: boolean; showArgo: boolean; showSampling: boolean; showSaliency: boolean; selected?: Coordinate; onSelect: (point: Coordinate) => void };
+type Props = { 
+  basemap: BasemapId; 
+  field: FieldId; 
+  points: FieldPoint[]; 
+  floats: ArgoFloat[]; 
+  showGrid: boolean; 
+  showArgo: boolean; 
+  showSampling: boolean; 
+  showSaliency: boolean; 
+  selectedLocations: SelectedLocation[];
+  clusters: GraphCardCluster[];
+  onSelect: (point: Coordinate) => void;
+  onToggleLocation: (loc: SelectedLocation) => void;
+  date: string;
+  fieldLabel: string;
+  fieldUnit: string;
+  isDepthField: boolean;
+  depth?: number;
+  panelData: any;
+  apiError: string | null;
+  justMergedClusterId: string | null;
+  onMergeClusters: (sourceClusterId: string, targetClusterId: string) => void;
+  onSplitCluster: (clusterId: string) => void;
+  onDetachLocation: (clusterId: string, locId: string) => void;
+  onRemoveCluster: (clusterId: string) => void;
+  onRemoveLocation: (locId: string) => void;
+  onClearAllLocations?: () => void;
+  onUpdateClusterOffset: (clusterId: string, offset: { x: number; y: number }) => void;
+};
 
 function interpolateColor(val: number, stops: [number, string][]): [number, number, number, number] {
   if (val <= stops[0][0]) return hexToRgb(stops[0][1]);
@@ -45,7 +76,7 @@ function hexToRgb(hex: string): [number, number, number, number] {
 
 const colorStops: Record<FieldId, [number, string][]> = {
   temperature: [[3, "#153c85"], [17, "#18a7c8"], [25, "#64dfc9"], [31, "#ffca65"]],
-  salinity: [[31, "#4b2b73"], [34, "#4ed3d0"], [37, "#d9e8e8"]],
+  salinity: [[31, "#d9e8e8"], [34, "#4ed3d0"], [37, "#4b2b73"]],
   uncertainty: [[0.1, "#133c5b"], [0.6, "#55d6c2"], [1.2, "#ff785a"]],
   tchp: [[10, "#113b62"], [70, "#31c8c9"], [130, "#ffe17b"]],
   d26: [[10, "#1d4b77"], [85, "#43cfbe"], [160, "#f4da7a"]],
@@ -89,29 +120,70 @@ for (let lon = 45; lon <= 105; lon += 0.25) {
   gridLines.push({ source: [lon, 5], target: [lon, 30], level });
 }
 
-export function OceanMap({ basemap, field, points, floats, showGrid, showArgo, showSampling, showSaliency, selected, onSelect }: Props) {
+const DOMAIN_BOUNDS: [[number, number], [number, number]] = [[44.8, 4.8], [105.2, 30.2]];
+
+function fitDomain(map: maplibregl.Map) {
+  map.fitBounds(DOMAIN_BOUNDS, {
+    padding: { top: 66, bottom: 56, left: 64, right: 96 },
+    duration: 0,
+  });
+}
+
+export function OceanMap({ 
+  basemap, field, points, floats, showGrid, showArgo, showSampling, showSaliency,
+  selectedLocations, clusters, onSelect, onToggleLocation,
+  date, fieldLabel, fieldUnit, isDepthField, depth, panelData, apiError,
+  justMergedClusterId, onMergeClusters, onSplitCluster, onDetachLocation,
+  onRemoveCluster, onRemoveLocation, onClearAllLocations, onUpdateClusterOffset,
+}: Props) {
   const node = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const [mapInstance, setMapInstance] = useState<maplibregl.Map | null>(null);
   const overlayRef = useRef<MapboxOverlay | null>(null);
   const activeBasemap = useRef<BasemapId>(basemap);
+  const onSelectRef = useRef(onSelect);
+  onSelectRef.current = onSelect;
 
   useEffect(() => {
     if (!node.current || mapRef.current) return;
     const map = new maplibregl.Map({ container: node.current, style: basemaps[basemap], center: [77, 16], zoom: 3.5, maxBounds: [[36, -8], [114, 36]] });
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
-    map.on("click", (event: MapMouseEvent) => onSelect({ lat: event.lngLat.lat, lon: event.lngLat.lng }));
+    
+    map.on("click", (event: MapMouseEvent) => {
+      onSelectRef.current({ lat: event.lngLat.lat, lon: event.lngLat.lng });
+    });
+    
     map.on("mousemove", (event: MapMouseEvent) => {
       const land = geoService.isLand(event.lngLat.lat, event.lngLat.lng);
       map.getCanvas().style.cursor = land ? "default" : "pointer";
     });
 
-    const overlay = new MapboxOverlay({ interleaved: true, layers: [] });
+    map.on("load", () => fitDomain(map));
+
+    const overlay = new MapboxOverlay({ interleaved: false, layers: [] });
     map.addControl(overlay as any);
     overlayRef.current = overlay;
 
     mapRef.current = map;
-    return () => { map.remove(); mapRef.current = null; overlayRef.current = null; };
-  }, [onSelect]);
+    setMapInstance(map);
+
+    const handleResize = () => {
+      if (mapRef.current) {
+        mapRef.current.resize();
+        fitDomain(mapRef.current);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    document.addEventListener("fullscreenchange", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      document.removeEventListener("fullscreenchange", handleResize);
+      map.remove();
+      mapRef.current = null;
+      overlayRef.current = null;
+    };
+  }, []);
 
   useEffect(() => {
     const overlay = overlayRef.current;
@@ -150,7 +222,7 @@ export function OceanMap({ basemap, field, points, floats, showGrid, showArgo, s
         getColor: d => {
           if (d.level === 5) return [255, 255, 255, 60];
           if (d.level === 1) return [255, 255, 255, 40];
-          return [255, 255, 255, 12]; // subtle
+          return [255, 255, 255, 12];
         },
         getWidth: d => {
           if (d.level === 5) return 1.5;
@@ -164,7 +236,7 @@ export function OceanMap({ basemap, field, points, floats, showGrid, showArgo, s
       }));
     }
 
-    // ARGO
+    // ARGO floats
     if (showArgo && floats.length > 0) {
       layers.push(new ScatterplotLayer({
         id: 'argo-halo',
@@ -194,25 +266,48 @@ export function OceanMap({ basemap, field, points, floats, showGrid, showArgo, s
       }));
     }
 
-    // Selected
-    if (selected) {
+    // Suggested Sampling Stations
+    if (showSampling) {
+      const samplingStations = [
+        { lat: 14.5, lon: 88.0, name: "Central BoB Core Array" },
+        { lat: 18.2, lon: 89.5, name: "Northern BoB Thermocline Station" },
+        { lat: 10.5, lon: 83.5, name: "Sri Lanka Dome Inflow" },
+        { lat: 12.5, lon: 66.0, name: "Central Arabian Sea Float" },
+        { lat: 17.2, lon: 68.8, name: "Gujarat Upwelling Array" },
+        { lat: 8.2, lon: 74.5, name: "Equatorial Jet Monitor" },
+        { lat: 15.5, lon: 94.0, name: "Andaman Sea Ridge" }
+      ];
+
       layers.push(new ScatterplotLayer({
-        id: 'selected-point',
-        data: [selected],
+        id: 'sampling-halo',
+        data: samplingStations,
         getPosition: (d: any) => [d.lon, d.lat],
-        getFillColor: [255, 165, 61, 51],
-        getRadius: 8,
+        getFillColor: [57, 211, 83, 45],
+        getRadius: 14,
         radiusUnits: 'pixels',
-        getLineColor: [255, 165, 61, 255],
+        getLineColor: [57, 211, 83, 230],
         lineWidthUnits: 'pixels',
         getLineWidth: 2,
+        stroked: true,
+        filled: true,
+      }));
+      layers.push(new ScatterplotLayer({
+        id: 'sampling-core',
+        data: samplingStations,
+        getPosition: (d: any) => [d.lon, d.lat],
+        getFillColor: [57, 211, 83, 255],
+        getRadius: 4.5,
+        radiusUnits: 'pixels',
+        getLineColor: [255, 255, 255, 255],
+        lineWidthUnits: 'pixels',
+        getLineWidth: 1.5,
         stroked: true,
         filled: true,
       }));
     }
 
     overlay.setProps({ layers });
-  }, [points, floats, showArgo, showSampling, showSaliency, field, selected]);
+  }, [points, floats, showGrid, showArgo, showSampling, showSaliency, field]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -222,5 +317,43 @@ export function OceanMap({ basemap, field, points, floats, showGrid, showArgo, s
     map.setStyle(basemaps[basemap]);
   }, [basemap]);
 
-  return <div ref={node} className="map-canvas" aria-label="North Indian Ocean reconstruction map" />;
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <div ref={node} className="map-canvas" aria-label="North Indian Ocean reconstruction map" style={{ width: '100%', height: '100%' }} />
+      
+      {/* Interactive Map Markers for all selected locations */}
+      {mapInstance && (
+        <MapMarkersOverlay
+          map={mapInstance}
+          locations={selectedLocations}
+          onToggleLocation={onToggleLocation}
+        />
+      )}
+
+      {/* Floating Graph Cards & Merged Comparison Cards with SVG Leader Lines */}
+      {mapInstance && (
+        <CardsManager
+          map={mapInstance}
+          clusters={clusters}
+          locations={selectedLocations}
+          date={date}
+          fieldId={field}
+          fieldLabel={fieldLabel}
+          fieldUnit={fieldUnit}
+          isDepthField={isDepthField}
+          activeDepth={depth}
+          panelData={panelData}
+          apiError={apiError}
+          justMergedClusterId={justMergedClusterId}
+          onMergeClusters={onMergeClusters}
+          onSplitCluster={onSplitCluster}
+          onDetachLocation={onDetachLocation}
+          onRemoveCluster={onRemoveCluster}
+          onRemoveLocation={onRemoveLocation}
+          onClearAllLocations={onClearAllLocations}
+          onUpdateClusterOffset={onUpdateClusterOffset}
+        />
+      )}
+    </div>
+  );
 }

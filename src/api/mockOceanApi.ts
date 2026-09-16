@@ -2,7 +2,7 @@ import { DEPTHS, type ArgoFloat, type Coordinate, type FieldId, type FieldPoint,
 
 const domain = { minLat: 5, maxLat: 30, minLon: 45, maxLon: 105 };
 const clamp = (n: number, low: number, high: number) => Math.max(low, Math.min(high, n));
-const wait = <T,>(value: T) => new Promise<T>((resolve) => window.setTimeout(() => resolve(value), 130));
+const wait = <T,>(value: T) => new Promise<T>((resolve) => window.setTimeout(() => resolve(value), 25));
 
 function fieldValue(field: FieldId, lat: number, lon: number, depth = 0) {
   const eddy = Math.sin((lon - 57) / 5) * Math.cos((lat - 14) / 4);
@@ -63,6 +63,7 @@ export const mockOceanApi: OceanEmbedApi = {
       const temp = fieldValue("temperature", point.lat, point.lon, depth);
       const sal = fieldValue("salinity", point.lat, point.lon, depth);
       const unc = fieldValue("uncertainty", point.lat, point.lon, depth);
+      const salUnc = unc * 0.28;
       
       const argoTemp = temp + Math.sin(i * 1.8 + point.lat) * 0.33;
       const argoSal = sal + Math.cos(i * 2.1 + point.lon) * 0.15;
@@ -71,18 +72,26 @@ export const mockOceanApi: OceanEmbedApi = {
       
       return {
         depth,
-        oceanEmbed: { temperature: temp, salinity: sal, uncertainty: unc },
+        oceanEmbed: { temperature: temp, salinity: sal, uncertainty: unc, salinityUncertainty: salUnc },
         armor3d: { temperature: armorTemp, salinity: armorSal },
         argo: { temperature: argoTemp, salinity: argoSal }
       };
     });
+
+    const validTemp = depths.map((d) => d.oceanEmbed.uncertainty);
+    const overallTempUncertainty = validTemp.reduce((a, b) => a + b, 0) / validTemp.length;
+    const validSal = depths.map((d) => d.oceanEmbed.salinityUncertainty);
+    const overallSalUncertainty = validSal.reduce((a, b) => a + b, 0) / validSal.length;
+
     return wait<OceanProfile>({ 
-      location: point, week: "2026-W35", depths, 
+      location: point, week: date || "2026-W35", depths, 
       tchp: fieldValue("tchp", point.lat, point.lon), 
       d26: fieldValue("d26", point.lat, point.lon), 
       mld: fieldValue("mld", point.lat, point.lon),
       confidence: fieldValue("uncertainty", point.lat, point.lon, 0),
-      nearestArgoKm: nearestArgo(point), gateStatus: "PUBLISHED"
+      nearestArgoKm: nearestArgo(point), gateStatus: "PUBLISHED",
+      overallTempUncertainty,
+      overallSalUncertainty,
     });
   },
   getTchp: (date, location) => {
@@ -95,7 +104,7 @@ export const mockOceanApi: OceanEmbedApi = {
     return wait({
       value, category, d26: fieldValue("d26", location.lat, location.lon),
       confidence: fieldValue("uncertainty", location.lat, location.lon, 0),
-      week: "2026-W35", location
+      week: date || "2026-W35", location
     });
   },
   getD26: (date, location) => {
@@ -103,20 +112,21 @@ export const mockOceanApi: OceanEmbedApi = {
       value: fieldValue("d26", location.lat, location.lon),
       tchp: fieldValue("tchp", location.lat, location.lon),
       confidence: fieldValue("uncertainty", location.lat, location.lon, 0),
-      week: "2026-W35", location
+      week: date || "2026-W35", location
     });
   },
   getMld: (date, location) => {
     return wait({
       value: fieldValue("mld", location.lat, location.lon),
       confidence: fieldValue("uncertainty", location.lat, location.lon, 0),
-      week: "2026-W35", location
+      week: date || "2026-W35", location
     });
   },
   getUncertainty: (date, location, depth) => {
     return wait({
-      value: fieldValue("uncertainty", location.lat, location.lon, depth ?? 0),
-      week: "2026-W35", location, depth
+      tempUncertainty: fieldValue("uncertainty", location.lat, location.lon, depth ?? 0),
+      salUncertainty: fieldValue("uncertainty", location.lat, location.lon, (depth ?? 0) + 100) * 0.8,
+      week: date || "2026-W35", location, depth
     });
   }
 };
