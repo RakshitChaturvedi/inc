@@ -74,23 +74,38 @@ export function App() {
     return () => controller.abort();
   }, [selectedAnalysisDate, field, depth, selectedField.depth]);
 
-  // Load profiles for each selected location
-  useEffect(() => {
-    selectedLocations.forEach((loc) => {
-      const needsProfile =
-        loc.profile === null ||
-        (loc.profile && loc.profile.week !== selectedAnalysisDate);
+  // Track ongoing profile fetches to prevent duplicate/cascading in-flight requests
+  const fetchingProfilesRef = useRef<Record<string, string>>({});
 
-      if (needsProfile && !geoService.isLand(loc.coord.lat, loc.coord.lon) && geoService.isInDomain(loc.coord.lat, loc.coord.lon)) {
-        oceanApi.getProfile(selectedAnalysisDate, loc.coord)
+  // Load profiles for each selected location with cancellation of obsolete requests
+  useEffect(() => {
+    let isCurrent = true;
+    const targetDate = selectedAnalysisDate;
+
+    selectedLocations.forEach((loc) => {
+      const hasCorrectWeek = loc.profile && loc.profile.week === targetDate;
+      const isAlreadyFetching = fetchingProfilesRef.current[loc.id] === targetDate;
+
+      if (hasCorrectWeek || isAlreadyFetching) {
+        return;
+      }
+
+      if (!geoService.isLand(loc.coord.lat, loc.coord.lon) && geoService.isInDomain(loc.coord.lat, loc.coord.lon)) {
+        fetchingProfilesRef.current[loc.id] = targetDate;
+
+        oceanApi.getProfile(targetDate, loc.coord)
           .then((prof) => {
+            delete fetchingProfilesRef.current[loc.id];
+            if (!isCurrent) return; // Discard obsolete in-flight requests from earlier simulation dates
             setSelectedLocations((prev) =>
               prev.map((item) =>
-                item.id === loc.id ? { ...item, profile: prof, loading: false } : item
+                item.id === loc.id ? { ...item, profile: prof ? { ...prof, week: targetDate } : null, loading: false } : item
               )
             );
           })
           .catch((err) => {
+            delete fetchingProfilesRef.current[loc.id];
+            if (!isCurrent) return;
             console.error("Failed to load profile for location", loc.label, err);
             setSelectedLocations((prev) =>
               prev.map((item) =>
@@ -100,11 +115,16 @@ export function App() {
           });
       }
     });
+
+    return () => {
+      isCurrent = false;
+    };
   }, [selectedLocations, selectedAnalysisDate]);
 
   // If single location selected and field is scalar, load scalar panelData
   const singleLocation = selectedLocations.length === 1 ? selectedLocations[0] : null;
   useEffect(() => {
+    let isCurrent = true;
     if (!singleLocation) {
       setPanelData(undefined);
       return;
@@ -115,15 +135,26 @@ export function App() {
       return;
     }
 
+    const targetDate = selectedAnalysisDate;
     if (field === 'tchp') {
-      oceanApi.getTchp(selectedAnalysisDate, coord).then(setPanelData).catch(() => setPanelData(null));
+      oceanApi.getTchp(targetDate, coord)
+        .then((res) => { if (isCurrent) setPanelData(res); })
+        .catch(() => { if (isCurrent) setPanelData(null); });
     } else if (field === 'mld') {
-      oceanApi.getMld(selectedAnalysisDate, coord).then(setPanelData).catch(() => setPanelData(null));
+      oceanApi.getMld(targetDate, coord)
+        .then((res) => { if (isCurrent) setPanelData(res); })
+        .catch(() => { if (isCurrent) setPanelData(null); });
     } else if (field === 'uncertainty') {
-      oceanApi.getUncertainty(selectedAnalysisDate, coord, depth).then(setPanelData).catch(() => setPanelData(null));
+      oceanApi.getUncertainty(targetDate, coord, depth)
+        .then((res) => { if (isCurrent) setPanelData(res); })
+        .catch(() => { if (isCurrent) setPanelData(null); });
     } else {
       setPanelData(undefined);
     }
+
+    return () => {
+      isCurrent = false;
+    };
   }, [singleLocation, selectedAnalysisDate, field, depth]);
 
   // List of all dates in the selected simulation range
