@@ -10,6 +10,7 @@ interface LocationGraphCardProps {
   fieldLabel: string;
   fieldUnit: string;
   isDepthField: boolean;
+  activeDepth?: number;
   panelData?: any;
   apiError: string | null;
   onClose: () => void;
@@ -27,6 +28,7 @@ export function LocationGraphCard({
   fieldLabel,
   fieldUnit,
   isDepthField,
+  activeDepth,
   panelData,
   apiError,
   onClose,
@@ -39,6 +41,41 @@ export function LocationGraphCard({
   const coord = location.coord;
   const isLand = geoService.isLand(coord.lat, coord.lon);
   const isInDomain = geoService.isInDomain(coord.lat, coord.lon);
+
+  // Scalar prediction value resolution: prioritize location.profile (which holds tchp, mld, d26) with fallback to panelData
+  const scalarValue =
+    fieldId === "tchp"
+      ? (location.profile?.tchp ?? panelData?.value)
+      : fieldId === "mld"
+      ? (location.profile?.mld ?? panelData?.value)
+      : fieldId === "d26"
+      ? (location.profile?.d26 ?? panelData?.value)
+      : panelData?.value;
+
+  const hasScalarValue = scalarValue !== undefined && scalarValue !== null && !isNaN(Number(scalarValue));
+
+  // Uncertainty calculations (Overall Temperature Uncertainty and Overall Salinity Uncertainty)
+  const tempUncertaintyList = location.profile?.depths
+    ?.map((d) => d.oceanEmbed?.uncertainty)
+    .filter((v): v is number => v !== undefined && v !== null && !isNaN(v)) ?? [];
+  const overallTempUnc =
+    tempUncertaintyList.length > 0
+      ? tempUncertaintyList.reduce((a, b) => a + b, 0) / tempUncertaintyList.length
+      : (location.profile?.overallTempUncertainty ?? panelData?.tempUncertainty ?? location.profile?.confidence ?? 0.28);
+
+  const salUncertaintyList = location.profile?.depths
+    ?.map((d) => d.oceanEmbed?.salinityUncertainty ?? (d.oceanEmbed?.uncertainty !== undefined ? d.oceanEmbed.uncertainty * 0.28 : undefined))
+    .filter((v): v is number => v !== undefined && v !== null && !isNaN(v)) ?? [];
+  const overallSalUnc =
+    salUncertaintyList.length > 0
+      ? salUncertaintyList.reduce((a, b) => a + b, 0) / salUncertaintyList.length
+      : (location.profile?.overallSalUncertainty ?? panelData?.salUncertainty ?? overallTempUnc * 0.28);
+
+  const depthMatch = location.profile?.depths?.find(
+    (d) => activeDepth !== undefined && Math.abs(d.depth - activeDepth) < 1e-3
+  );
+  const activeDepthTempUnc = depthMatch?.oceanEmbed?.uncertainty ?? panelData?.tempUncertainty;
+  const activeDepthSalUnc = depthMatch?.oceanEmbed?.salinityUncertainty ?? panelData?.salUncertainty;
 
   return (
     <div
@@ -172,12 +209,75 @@ export function LocationGraphCard({
             <strong>PREDICTION UNAVAILABLE</strong>
             <span style={{ color: "#FF5C63" }}>{apiError}</span>
           </div>
-        ) : location.loading || !location.profile ? (
+        ) : location.loading ? (
           <div className="card-message card-loading">
             <div className="card-spinner" />
             <span>PREDICTING...</span>
           </div>
-        ) : isDepthField && fieldId !== "uncertainty" && location.profile ? (
+        ) : fieldId === "uncertainty" && (location.profile || panelData) ? (
+          /* Dedicated Uncertainty Value View: Overall Temp & Overall Salinity Uncertainty */
+          <div className="card-uncertainty-view">
+            <div className="card-chart-header">
+              <div className="card-chart-title">UNCERTAINTY ESTIMATES</div>
+              <div className="card-chart-field">Prediction Confidence (σ)</div>
+              <div className="card-chart-unit">0m – 1000m Water Column Aggregate</div>
+            </div>
+
+            <div className="card-uncertainty-blocks">
+              {/* Overall Temperature Uncertainty */}
+              <div className="card-unc-box unc-box-temp">
+                <div className="unc-box-head">
+                  <span className="unc-dot unc-dot-temp" />
+                  <span className="unc-label">OVERALL TEMPERATURE UNCERTAINTY</span>
+                </div>
+                <div className="unc-value-row">
+                  <span className="unc-val">± {overallTempUnc.toFixed(3)}</span>
+                  <span className="unc-unit">σ °C</span>
+                </div>
+                <div className="unc-bar-track">
+                  <div
+                    className="unc-bar-fill unc-bar-temp"
+                    style={{ width: `${Math.min(100, Math.max(12, (overallTempUnc / 1.0) * 100))}%` }}
+                  />
+                </div>
+                <div className="unc-box-sub">Full Water Column Mean (0–1000m)</div>
+              </div>
+
+              {/* Overall Salinity Uncertainty */}
+              <div className="card-unc-box unc-box-sal">
+                <div className="unc-box-head">
+                  <span className="unc-dot unc-dot-sal" />
+                  <span className="unc-label">OVERALL SALINITY UNCERTAINTY</span>
+                </div>
+                <div className="unc-value-row">
+                  <span className="unc-val">± {overallSalUnc.toFixed(3)}</span>
+                  <span className="unc-unit">σ psu</span>
+                </div>
+                <div className="unc-bar-track">
+                  <div
+                    className="unc-bar-fill unc-bar-sal"
+                    style={{ width: `${Math.min(100, Math.max(12, (overallSalUnc / 0.5) * 100))}%` }}
+                  />
+                </div>
+                <div className="unc-box-sub">Full Water Column Mean (0–1000m)</div>
+              </div>
+            </div>
+
+            {/* Selected Depth Slice Context */}
+            {activeDepth !== undefined && (
+              <div className="card-unc-depth-context">
+                <div className="unc-depth-title">
+                  <span>CURRENT DEPTH LAYER ({activeDepth}m)</span>
+                </div>
+                <div className="unc-depth-row">
+                  <span>T: <strong>±{(activeDepthTempUnc ?? overallTempUnc).toFixed(3)} σ °C</strong></span>
+                  <span className="unc-depth-sep">·</span>
+                  <span>S: <strong>±{(activeDepthSalUnc ?? overallSalUnc).toFixed(3)} σ psu</strong></span>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : isDepthField && location.profile ? (
           <>
             <div className="card-chart-header">
               <div className="card-chart-title">DEPTH PROFILE</div>
@@ -200,37 +300,46 @@ export function LocationGraphCard({
               <span>OceanEmbed prediction</span>
             </div>
           </>
-        ) : fieldId === "uncertainty" && panelData ? (
-          <div className="card-scalar-card">
-            <div className="card-chart-title">UNCERTAINTY ESTIMATES</div>
-            <div className="card-chart-field">{panelData.depth}m DEPTH</div>
-            <div style={{ display: "flex", gap: "20px", marginTop: "12px" }}>
-              <div>
-                <div style={{ fontSize: "9px", color: "#99A8A9", fontWeight: 600 }}>
-                  TEMPERATURE
-                </div>
-                <div className="card-scalar-val">
-                  ± {panelData.tempUncertainty?.toFixed(3)} <span>σ °C</span>
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: "9px", color: "#99A8A9", fontWeight: 600 }}>
-                  SALINITY
-                </div>
-                <div className="card-scalar-val">
-                  ± {panelData.salUncertainty?.toFixed(3)} <span>σ psu</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : !isDepthField && panelData ? (
+        ) : hasScalarValue ? (
           <div className="card-scalar-card">
             <div className="card-chart-title">SURFACE PREDICTION</div>
             <div className="card-chart-field">{fieldLabel}</div>
             <div className="card-scalar-val">
-              {panelData.value?.toFixed(2)} <span>{fieldUnit}</span>
+              {Number(scalarValue).toFixed(2)} <span>{fieldUnit}</span>
             </div>
+            {fieldId === "tchp" && (location.profile?.d26 !== undefined || panelData?.d26 !== undefined) && (
+              <div style={{ marginTop: "10px", fontSize: "11px", color: "#99A8A9" }}>
+                26°C Isotherm Depth (D26): <strong style={{ color: "#F5FAFA" }}>{((location.profile?.d26 ?? panelData?.d26) as number).toFixed(1)} m</strong>
+              </div>
+            )}
+            {(location.profile?.confidence !== undefined || panelData?.confidence !== undefined) && (
+              <div style={{ marginTop: "6px", fontSize: "10px", color: "#99A8A9" }}>
+                Confidence: ±{((location.profile?.confidence ?? panelData?.confidence) as number).toFixed(2)} σ
+              </div>
+            )}
           </div>
+        ) : location.profile ? (
+          /* Profile exists: show depth chart */
+          <>
+            <div className="card-chart-header">
+              <div className="card-chart-title">DEPTH PROFILE</div>
+              <div className="card-chart-field">{fieldLabel}</div>
+              <div className="card-chart-unit">{fieldUnit}</div>
+            </div>
+            <DepthChart
+              profile={location.profile}
+              variable={fieldId}
+              fieldLabel={fieldLabel}
+              fieldUnit={fieldUnit}
+            />
+            <div className="card-chart-legend">
+              <div
+                className="card-legend-circle"
+                style={{ background: location.color }}
+              />
+              <span>OceanEmbed prediction</span>
+            </div>
+          </>
         ) : (
           <div className="card-message card-error">PREDICTION UNAVAILABLE</div>
         )}

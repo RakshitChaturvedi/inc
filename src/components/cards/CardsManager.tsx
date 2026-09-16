@@ -14,6 +14,7 @@ interface CardsManagerProps {
   fieldLabel: string;
   fieldUnit: string;
   isDepthField: boolean;
+  activeDepth?: number;
   panelData?: any;
   apiError: string | null;
   justMergedClusterId: string | null;
@@ -22,6 +23,7 @@ interface CardsManagerProps {
   onDetachLocation: (clusterId: string, locId: string) => void;
   onRemoveCluster: (clusterId: string) => void;
   onRemoveLocation: (locId: string) => void;
+  onClearAllLocations?: () => void;
   onUpdateClusterOffset: (clusterId: string, offset: { x: number; y: number }) => void;
 }
 
@@ -34,6 +36,7 @@ export function CardsManager({
   fieldLabel,
   fieldUnit,
   isDepthField,
+  activeDepth,
   panelData,
   apiError,
   justMergedClusterId,
@@ -42,6 +45,7 @@ export function CardsManager({
   onDetachLocation,
   onRemoveCluster,
   onRemoveLocation,
+  onClearAllLocations,
   onUpdateClusterOffset,
 }: CardsManagerProps) {
   const [, setMapTick] = useState(0);
@@ -306,6 +310,8 @@ export function CardsManager({
                 fieldId={fieldId}
                 fieldLabel={fieldLabel}
                 fieldUnit={fieldUnit}
+                isDepthField={isDepthField}
+                activeDepth={activeDepth}
                 onClose={() => onRemoveCluster(cluster.id)}
                 onSplitAll={() => onSplitCluster(cluster.id)}
                 onDetachLocation={(locId) => onDetachLocation(cluster.id, locId)}
@@ -324,6 +330,7 @@ export function CardsManager({
                 fieldLabel={fieldLabel}
                 fieldUnit={fieldUnit}
                 isDepthField={isDepthField}
+                activeDepth={activeDepth}
                 panelData={panelData}
                 apiError={apiError}
                 onClose={() => onRemoveLocation(clusterLocs[0].id)}

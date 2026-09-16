@@ -8,6 +8,8 @@ interface MergedComparisonCardProps {
   fieldId: string;
   fieldLabel: string;
   fieldUnit: string;
+  isDepthField?: boolean;
+  activeDepth?: number;
   onClose: () => void;
   onSplitAll: () => void;
   onDetachLocation: (locId: string) => void;
@@ -25,6 +27,8 @@ export function MergedComparisonCard({
   fieldId,
   fieldLabel,
   fieldUnit,
+  isDepthField = true,
+  activeDepth,
   onClose,
   onSplitAll,
   onDetachLocation,
@@ -220,18 +224,152 @@ export function MergedComparisonCard({
       {/* Chart Body */}
       <div className="card-body comp-chart-body">
         <div className="card-chart-header">
-          <div className="card-chart-title">DEPTH PROFILE COMPARISON</div>
+          <div className="card-chart-title">
+            {fieldId === "uncertainty"
+              ? "UNCERTAINTY COMPARISON (OVERALL COLUMN)"
+              : isDepthField
+              ? "DEPTH PROFILE COMPARISON"
+              : "SURFACE PREDICTION COMPARISON"}
+          </div>
           <div className="card-chart-field">{fieldLabel}</div>
-          <div className="card-chart-unit">{fieldUnit}</div>
+          <div className="card-chart-unit">
+            {fieldId === "uncertainty" ? "Overall Temperature (σ °C) & Salinity (σ psu)" : fieldUnit}
+          </div>
         </div>
 
-        <ComparisonChart
-          locations={locations}
-          variable={fieldId}
-          fieldLabel={fieldLabel}
-          fieldUnit={fieldUnit}
-          isZoomed={isZoomed}
-        />
+        {fieldId === "uncertainty" ? (
+          <div className="card-merged-uncertainty-list">
+            {locations.map((loc) => {
+              const tempUncList = loc.profile?.depths
+                ?.map((d) => d.oceanEmbed?.uncertainty)
+                .filter((v): v is number => v !== undefined && v !== null && !isNaN(v)) ?? [];
+              const meanTemp = tempUncList.length > 0
+                ? tempUncList.reduce((a, b) => a + b, 0) / tempUncList.length
+                : (loc.profile?.overallTempUncertainty ?? loc.profile?.confidence ?? 0.28);
+
+              const salUncList = loc.profile?.depths
+                ?.map((d) => d.oceanEmbed?.salinityUncertainty ?? (d.oceanEmbed?.uncertainty !== undefined ? d.oceanEmbed.uncertainty * 0.28 : undefined))
+                .filter((v): v is number => v !== undefined && v !== null && !isNaN(v)) ?? [];
+              const meanSal = salUncList.length > 0
+                ? salUncList.reduce((a, b) => a + b, 0) / salUncList.length
+                : (loc.profile?.overallSalUncertainty ?? meanTemp * 0.28);
+
+              const dMatch = loc.profile?.depths?.find(
+                (d) => activeDepth !== undefined && Math.abs(d.depth - activeDepth) < 1e-3
+              );
+              const depthTemp = dMatch?.oceanEmbed?.uncertainty;
+              const depthSal = dMatch?.oceanEmbed?.salinityUncertainty;
+
+              return (
+                <div key={loc.id} className="card-merged-unc-row" style={{ borderLeft: `3px solid ${loc.color}` }}>
+                  <div className="merged-unc-left">
+                    <div className="merged-unc-id-row">
+                      <span className="card-badge" style={{ backgroundColor: loc.color }}>
+                        {loc.label}
+                      </span>
+                      <span className="merged-unc-coord">
+                        {loc.coord.lat.toFixed(2)}°N, {loc.coord.lon.toFixed(2)}°E
+                      </span>
+                    </div>
+                    {activeDepth !== undefined && depthTemp !== undefined && (
+                      <div className="merged-unc-sub">
+                        At {activeDepth}m: ±{depthTemp.toFixed(3)} °C · ±{(depthSal ?? depthTemp * 0.28).toFixed(3)} psu
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="merged-unc-right">
+                    <div className="merged-metric-item">
+                      <div className="merged-metric-label">TEMP UNCERTAINTY</div>
+                      <div className="merged-metric-val temp-accent">
+                        ± {meanTemp.toFixed(3)} <span>σ °C</span>
+                      </div>
+                      <div className="merged-bar-track">
+                        <div
+                          className="merged-bar-fill temp-bar"
+                          style={{ width: `${Math.min(100, Math.max(12, (meanTemp / 1.0) * 100))}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="merged-metric-item">
+                      <div className="merged-metric-label">SALINITY UNCERTAINTY</div>
+                      <div className="merged-metric-val sal-accent">
+                        ± {meanSal.toFixed(3)} <span>σ psu</span>
+                      </div>
+                      <div className="merged-bar-track">
+                        <div
+                          className="merged-bar-fill sal-bar"
+                          style={{ width: `${Math.min(100, Math.max(12, (meanSal / 0.5) * 100))}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : isDepthField ? (
+          <ComparisonChart
+            locations={locations}
+            variable={fieldId}
+            fieldLabel={fieldLabel}
+            fieldUnit={fieldUnit}
+            isZoomed={isZoomed}
+          />
+        ) : (
+          <div style={{ padding: "14px 10px", display: "flex", flexDirection: "column", gap: "10px" }}>
+            {locations.map((loc) => {
+              const val =
+                fieldId === "tchp"
+                  ? loc.profile?.tchp
+                  : fieldId === "mld"
+                  ? loc.profile?.mld
+                  : fieldId === "d26"
+                  ? loc.profile?.d26
+                  : undefined;
+
+              return (
+                <div
+                  key={loc.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "9px 12px",
+                    background: "rgba(10, 17, 24, 0.75)",
+                    border: "1px solid var(--border-neutral)",
+                    borderLeft: `3px solid ${loc.color}`,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
+                    <span className="card-badge" style={{ backgroundColor: loc.color }}>
+                      {loc.label}
+                    </span>
+                    <div>
+                      <div style={{ fontSize: "11px", fontWeight: 600, color: "#F5FAFA" }}>
+                        {loc.coord.lat.toFixed(2)}°N, {loc.coord.lon.toFixed(2)}°E
+                      </div>
+                      <div style={{ fontSize: "10px", color: "#99A8A9" }}>
+                        nearest ARGO {loc.profile?.nearestArgoKm ?? 42} km
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: "16px", fontWeight: 700, color: "#F5FAFA", fontFamily: "var(--mono, monospace)" }}>
+                      {val !== undefined ? val.toFixed(2) : "—"} <span style={{ fontSize: "10px", color: "#99A8A9" }}>{fieldUnit}</span>
+                    </div>
+                    {fieldId === "tchp" && loc.profile?.d26 !== undefined && (
+                      <div style={{ fontSize: "9px", color: "#99A8A9" }}>
+                        D26: {loc.profile.d26.toFixed(1)} m
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Manual Drag Resize Corner Grip */}

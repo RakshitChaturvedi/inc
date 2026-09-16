@@ -5,6 +5,9 @@ interface CalendarControlProps {
   onSelectDate: (date: string) => void;
   minDate?: string;
   maxDate?: string;
+  onStartSimulation?: (startDate: string, endDate: string) => void;
+  isSimulating?: boolean;
+  simulationRange?: { startDate: string; endDate: string } | null;
 }
 
 const MONTH_NAMES = [
@@ -24,9 +27,18 @@ export const CalendarControl: React.FC<CalendarControlProps> = ({
   onSelectDate,
   minDate = "2020-01-01",
   maxDate = "2026-12-31",
+  onStartSimulation,
+  isSimulating = false,
+  simulationRange,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Mode: "single" date analysis vs "simulation" range
+  const [mode, setMode] = useState<"single" | "simulation">(isSimulating ? "simulation" : "single");
+  const [rangeStart, setRangeStart] = useState<string>(simulationRange?.startDate ?? "2026-08-20");
+  const [rangeEnd, setRangeEnd] = useState<string>(simulationRange?.endDate ?? "2026-08-27");
+  const [simStep, setSimStep] = useState<"start" | "end">("start");
 
   // Parse current selected date
   const selectedParts = useMemo(() => {
@@ -72,6 +84,9 @@ export const CalendarControl: React.FC<CalendarControlProps> = ({
       dateStr: string;
       isDisabled: boolean;
       isSelected: boolean;
+      isRangeStart: boolean;
+      isRangeEnd: boolean;
+      isInRange: boolean;
     }> = [];
 
     // Previous month padding
@@ -86,6 +101,9 @@ export const CalendarControl: React.FC<CalendarControlProps> = ({
         dateStr,
         isDisabled: dateStr < minDate || dateStr > maxDate,
         isSelected: false,
+        isRangeStart: mode === "simulation" && dateStr === rangeStart,
+        isRangeEnd: mode === "simulation" && dateStr === rangeEnd,
+        isInRange: mode === "simulation" && dateStr > rangeStart && dateStr < rangeEnd,
       });
     }
 
@@ -98,9 +116,13 @@ export const CalendarControl: React.FC<CalendarControlProps> = ({
         dateStr,
         isDisabled: dateStr < minDate || dateStr > maxDate,
         isSelected:
+          mode === "single" &&
           viewYear === selectedParts.year &&
           viewMonth === selectedParts.month &&
           d === selectedParts.day,
+        isRangeStart: mode === "simulation" && dateStr === rangeStart,
+        isRangeEnd: mode === "simulation" && dateStr === rangeEnd,
+        isInRange: mode === "simulation" && dateStr > rangeStart && dateStr < rangeEnd,
       });
     }
 
@@ -116,11 +138,14 @@ export const CalendarControl: React.FC<CalendarControlProps> = ({
         dateStr,
         isDisabled: dateStr < minDate || dateStr > maxDate,
         isSelected: false,
+        isRangeStart: mode === "simulation" && dateStr === rangeStart,
+        isRangeEnd: mode === "simulation" && dateStr === rangeEnd,
+        isInRange: mode === "simulation" && dateStr > rangeStart && dateStr < rangeEnd,
       });
     }
 
     return days;
-  }, [viewYear, viewMonth, selectedParts, minDate, maxDate]);
+  }, [viewYear, viewMonth, selectedParts, minDate, maxDate, mode, rangeStart, rangeEnd]);
 
   const handlePrevMonth = () => {
     if (viewMonth === 0) {
@@ -144,9 +169,29 @@ export const CalendarControl: React.FC<CalendarControlProps> = ({
 
   const handleSelectDay = (dateStr: string, isDisabled: boolean) => {
     if (isDisabled) return;
-    onSelectDate(dateStr);
-    setHasSelected(true);
-    setIsOpen(false);
+
+    if (mode === "single") {
+      onSelectDate(dateStr);
+      setHasSelected(true);
+      setIsOpen(false);
+    } else {
+      // Simulation mode range selection
+      if (simStep === "start") {
+        setRangeStart(dateStr);
+        if (dateStr > rangeEnd) {
+          setRangeEnd(dateStr);
+        }
+        setSimStep("end");
+      } else {
+        if (dateStr < rangeStart) {
+          setRangeStart(dateStr);
+          setSimStep("end");
+        } else {
+          setRangeEnd(dateStr);
+          setSimStep("start");
+        }
+      }
+    }
   };
 
   const formattedDate = useMemo(() => {
@@ -160,34 +205,62 @@ export const CalendarControl: React.FC<CalendarControlProps> = ({
     <div className="floating-calendar-container" ref={containerRef}>
       <button
         type="button"
-        className={`floating-calendar-btn ${hasSelected ? "selected-state" : "default-state"} ${isOpen ? "active" : ""}`}
+        className={`floating-calendar-btn ${hasSelected || isSimulating ? "selected-state" : "default-state"} ${isOpen ? "active" : ""}`}
         onClick={() => setIsOpen(!isOpen)}
-        title={hasSelected ? formattedDate : "Select date"}
+        title={isSimulating ? `Simulation: ${date}` : hasSelected ? formattedDate : "Select date / simulation"}
         aria-label="Calendar date picker"
       >
-        <svg
-          className="calendar-icon"
-          width="15"
-          height="15"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <rect x="3" y="4" width="18" height="18" />
-          <line x1="16" y1="2" x2="16" y2="6" />
-          <line x1="8" y1="2" x2="8" y2="6" />
-          <line x1="3" y1="10" x2="21" y2="10" />
-        </svg>
-        {hasSelected && (
-          <span className="cal-date-text">{formattedDate}</span>
+        {isSimulating ? (
+          <span className="sim-dot playing" style={{ marginRight: 6 }} />
+        ) : (
+          <svg
+            className="calendar-icon"
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <rect x="3" y="4" width="18" height="18" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+        )}
+        {(hasSelected || isSimulating) && (
+          <span className="cal-date-text">{isSimulating ? `SIM: ${formattedDate}` : formattedDate}</span>
         )}
       </button>
 
       {isOpen && (
         <div className="calendar-popover">
+          {/* Mode Switch Tabs */}
+          <div className="cal-mode-tabs">
+            <button
+              type="button"
+              className={`cal-mode-tab ${mode === "single" ? "active" : ""}`}
+              onClick={() => setMode("single")}
+            >
+              SINGLE DATE
+            </button>
+            <button
+              type="button"
+              className={`cal-mode-tab ${mode === "simulation" ? "active" : ""}`}
+              onClick={() => setMode("simulation")}
+            >
+              SIMULATION RANGE
+            </button>
+          </div>
+
+          {mode === "simulation" && (
+            <div className="cal-range-hint">
+              {simStep === "start" ? "Click day to set Start Date" : "Click day to set End Date"}
+            </div>
+          )}
+
           {/* Popover Header */}
           <div className="calendar-popover-header">
             <button
@@ -256,9 +329,11 @@ export const CalendarControl: React.FC<CalendarControlProps> = ({
                 type="button"
                 className={`cal-day-cell ${
                   item.isSelected ? "selected" : ""
-                } ${item.isDisabled ? "disabled" : ""} ${
-                  item.monthOffset !== 0 ? "outside-month" : ""
-                }`}
+                } ${item.isRangeStart ? "range-start" : ""} ${
+                  item.isRangeEnd ? "range-end" : ""
+                } ${item.isInRange ? "in-range" : ""} ${
+                  item.isDisabled ? "disabled" : ""
+                } ${item.monthOffset !== 0 ? "outside-month" : ""}`}
                 disabled={item.isDisabled}
                 onClick={() => handleSelectDay(item.dateStr, item.isDisabled)}
               >
@@ -266,6 +341,60 @@ export const CalendarControl: React.FC<CalendarControlProps> = ({
               </button>
             ))}
           </div>
+
+          {/* Simulation Range Actions & Presets */}
+          {mode === "simulation" && (
+            <>
+              <div className="cal-presets-row">
+                <button
+                  type="button"
+                  className="cal-preset-chip"
+                  onClick={() => {
+                    setRangeStart("2026-08-20");
+                    setRangeEnd("2026-08-27");
+                  }}
+                >
+                  7 Days
+                </button>
+                <button
+                  type="button"
+                  className="cal-preset-chip"
+                  onClick={() => {
+                    setRangeStart("2026-08-14");
+                    setRangeEnd("2026-08-27");
+                  }}
+                >
+                  14 Days
+                </button>
+                <button
+                  type="button"
+                  className="cal-preset-chip"
+                  onClick={() => {
+                    setRangeStart("2026-08-01");
+                    setRangeEnd("2026-08-27");
+                  }}
+                >
+                  Month
+                </button>
+              </div>
+
+              <button
+                type="button"
+                className="cal-start-sim-btn"
+                onClick={() => {
+                  if (onStartSimulation) {
+                    onStartSimulation(rangeStart, rangeEnd);
+                  }
+                  setIsOpen(false);
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
+                <span>START SIMULATION ({rangeStart} → {rangeEnd})</span>
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>

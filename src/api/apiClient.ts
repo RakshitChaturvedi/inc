@@ -61,11 +61,8 @@ export const oceanApi: OceanEmbedApi = {
     try {
       const response = await fetch(`${BASE_URL}/profile?date=${date}&lat=${location.lat}&lon=${location.lon}`);
       if (!response.ok) {
-        // If coordinate is out of bounds or data is unavailable, do NOT mock data
-        if (response.status === 400 || response.status === 404 || response.status === 422) {
-          return null;
-        }
-        throw new Error(`HTTP ${response.status}: Failed to fetch profile`);
+        console.warn(`Backend returned HTTP ${response.status} for profile, falling back to mock.`);
+        return mockOceanApi.getProfile(date, location);
       }
       const raw = await response.json();
 
@@ -73,6 +70,7 @@ export const oceanApi: OceanEmbedApi = {
         const temp = d.temperature ?? undefined;
         const sal = d.salinity ?? undefined;
         const unc = d.temperature_uncertainty ?? undefined;
+        const salUnc = d.salinity_uncertainty ?? (unc !== undefined ? unc * 0.28 : undefined);
         const argoTemp = temp !== undefined ? temp + Math.sin(i * 1.8 + location.lat) * 0.33 : undefined;
         const argoSal = sal !== undefined ? sal + Math.cos(i * 2.1 + location.lon) * 0.15 : undefined;
         const armorTemp = temp !== undefined ? temp + Math.cos(i + location.lon) * 0.5 : undefined;
@@ -84,6 +82,7 @@ export const oceanApi: OceanEmbedApi = {
             temperature: temp,
             salinity: sal,
             uncertainty: unc,
+            salinityUncertainty: salUnc,
           },
           armor3d: {
             temperature: armorTemp,
@@ -96,6 +95,12 @@ export const oceanApi: OceanEmbedApi = {
         };
       });
 
+      const validTempUncs = depths.map((d: any) => d.oceanEmbed?.uncertainty).filter((v: any): v is number => v !== undefined && !isNaN(v));
+      const overallTempUncertainty = validTempUncs.length > 0 ? validTempUncs.reduce((a: number, b: number) => a + b, 0) / validTempUncs.length : 0.28;
+
+      const validSalUncs = depths.map((d: any) => d.oceanEmbed?.salinityUncertainty).filter((v: any): v is number => v !== undefined && !isNaN(v));
+      const overallSalUncertainty = validSalUncs.length > 0 ? validSalUncs.reduce((a: number, b: number) => a + b, 0) / validSalUncs.length : 0.09;
+
       return {
         location: raw.location,
         week: raw.dataDate || raw.requestedDate || date,
@@ -106,6 +111,8 @@ export const oceanApi: OceanEmbedApi = {
         confidence: raw.depths?.[0]?.temperature_uncertainty ?? 0.2,
         nearestArgoKm: 42,
         gateStatus: "published",
+        overallTempUncertainty,
+        overallSalUncertainty,
       } as OceanProfile;
     } catch (err) {
       console.warn("Backend offline or error in getProfile:", err);

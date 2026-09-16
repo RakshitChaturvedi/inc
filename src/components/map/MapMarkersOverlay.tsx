@@ -158,7 +158,7 @@ export function MapMarkersOverlay({
               style={{
                 width: "22px",
                 height: "22px",
-                borderRadius: "50%",
+                borderRadius: "0px",
                 background: "#0A1118",
                 border: `2px solid ${loc.color}`,
                 display: "flex",

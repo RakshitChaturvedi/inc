@@ -29,6 +29,7 @@ type Props = {
   fieldLabel: string;
   fieldUnit: string;
   isDepthField: boolean;
+  depth?: number;
   panelData: any;
   apiError: string | null;
   justMergedClusterId: string | null;
@@ -37,6 +38,7 @@ type Props = {
   onDetachLocation: (clusterId: string, locId: string) => void;
   onRemoveCluster: (clusterId: string) => void;
   onRemoveLocation: (locId: string) => void;
+  onClearAllLocations?: () => void;
   onUpdateClusterOffset: (clusterId: string, offset: { x: number; y: number }) => void;
 };
 
@@ -130,9 +132,9 @@ function fitDomain(map: maplibregl.Map) {
 export function OceanMap({ 
   basemap, field, points, floats, showGrid, showArgo, showSampling, showSaliency,
   selectedLocations, clusters, onSelect, onToggleLocation,
-  date, fieldLabel, fieldUnit, isDepthField, panelData, apiError,
+  date, fieldLabel, fieldUnit, isDepthField, depth, panelData, apiError,
   justMergedClusterId, onMergeClusters, onSplitCluster, onDetachLocation,
-  onRemoveCluster, onRemoveLocation, onUpdateClusterOffset,
+  onRemoveCluster, onRemoveLocation, onClearAllLocations, onUpdateClusterOffset,
 }: Props) {
   const node = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -234,7 +236,7 @@ export function OceanMap({
       }));
     }
 
-    // ARGO
+    // ARGO floats
     if (showArgo && floats.length > 0) {
       layers.push(new ScatterplotLayer({
         id: 'argo-halo',
@@ -264,8 +266,48 @@ export function OceanMap({
       }));
     }
 
+    // Suggested Sampling Stations
+    if (showSampling) {
+      const samplingStations = [
+        { lat: 14.5, lon: 88.0, name: "Central BoB Core Array" },
+        { lat: 18.2, lon: 89.5, name: "Northern BoB Thermocline Station" },
+        { lat: 10.5, lon: 83.5, name: "Sri Lanka Dome Inflow" },
+        { lat: 12.5, lon: 66.0, name: "Central Arabian Sea Float" },
+        { lat: 17.2, lon: 68.8, name: "Gujarat Upwelling Array" },
+        { lat: 8.2, lon: 74.5, name: "Equatorial Jet Monitor" },
+        { lat: 15.5, lon: 94.0, name: "Andaman Sea Ridge" }
+      ];
+
+      layers.push(new ScatterplotLayer({
+        id: 'sampling-halo',
+        data: samplingStations,
+        getPosition: (d: any) => [d.lon, d.lat],
+        getFillColor: [57, 211, 83, 45],
+        getRadius: 14,
+        radiusUnits: 'pixels',
+        getLineColor: [57, 211, 83, 230],
+        lineWidthUnits: 'pixels',
+        getLineWidth: 2,
+        stroked: true,
+        filled: true,
+      }));
+      layers.push(new ScatterplotLayer({
+        id: 'sampling-core',
+        data: samplingStations,
+        getPosition: (d: any) => [d.lon, d.lat],
+        getFillColor: [57, 211, 83, 255],
+        getRadius: 4.5,
+        radiusUnits: 'pixels',
+        getLineColor: [255, 255, 255, 255],
+        lineWidthUnits: 'pixels',
+        getLineWidth: 1.5,
+        stroked: true,
+        filled: true,
+      }));
+    }
+
     overlay.setProps({ layers });
-  }, [points, floats, showArgo, showSampling, showSaliency, field]);
+  }, [points, floats, showGrid, showArgo, showSampling, showSaliency, field]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -299,6 +341,7 @@ export function OceanMap({
           fieldLabel={fieldLabel}
           fieldUnit={fieldUnit}
           isDepthField={isDepthField}
+          activeDepth={depth}
           panelData={panelData}
           apiError={apiError}
           justMergedClusterId={justMergedClusterId}
@@ -307,6 +350,7 @@ export function OceanMap({
           onDetachLocation={onDetachLocation}
           onRemoveCluster={onRemoveCluster}
           onRemoveLocation={onRemoveLocation}
+          onClearAllLocations={onClearAllLocations}
           onUpdateClusterOffset={onUpdateClusterOffset}
         />
       )}
