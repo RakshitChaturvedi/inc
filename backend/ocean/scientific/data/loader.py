@@ -62,7 +62,7 @@ class ScientificDataset:
     def close(self) -> None:
         self._dataset.close()
         self._mask_dataset.close()
-    
+
     @property
     def temperature(self) -> xr.DataArray:
         return self._dataset[self.schema.temperature_name]
