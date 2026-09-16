@@ -116,3 +116,8 @@ Thumbs.db
 # ==========================================
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
+
+__pycache__/
+*.pyc
+backend/data/business/*.nc
+backend/data/
